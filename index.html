@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Grammar Trainer</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+
+:root {
+  --espresso: #2B2521;
+  --linen:    #F2EDE4;
+  --caramel:  #C9A882;
+  --mocha:    #8C7B6B;
+  --ok:       #4A7D4C;
+  --ok-bg:    #EBF4EC;
+  --err:      #9A3228;
+  --err-bg:   #F5E8E6;
+  --card:     #FFFDF9;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--linen);
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--espresso);
+  padding-top: var(--sat);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; }
+button:active { transform: scale(.97); }
+input:focus { outline: none; }
+
+/* ── SCREEN WRAPPER ──────────────────────────────── */
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 20px calc(80px + var(--sab));
+  min-height: 100vh;
+}
+
+/* ── GLOBAL PROGRESS BAR ─────────────────────────── */
+.gbar-wrap {
+  position: sticky; top: 0; z-index: 20;
+  height: 3px;
+  background: #C9A88222;
+  margin: 0;
+}
+.gbar-fill {
+  height: 3px;
+  background: var(--caramel);
+  transition: width .4s ease;
+}
+
+/* ── TYPOGRAPHY ──────────────────────────────────── */
+.serif { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; }
+.label {
+  font-size: 11px; color: var(--mocha);
+  text-transform: uppercase; letter-spacing: .09em;
+  margin-bottom: 10px; display: block;
+}
+h1.title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-size: 44px; font-weight: 600;
+  line-height: 1.05; margin-bottom: 16px;
+}
+h2.title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-size: 34px; font-weight: 600;
+  line-height: 1.1; margin-bottom: 20px;
+}
+
+/* ── CARD ────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid #C9A88230;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+/* ── BUTTONS ─────────────────────────────────────── */
+.btn-primary {
+  width: 100%; display: block;
+  background: var(--caramel); color: var(--espresso);
+  border-radius: 14px; padding: 16px 20px;
+  font-size: 16px; font-weight: 600;
+  letter-spacing: .01em;
+  transition: opacity .15s;
+}
+.btn-primary:active { opacity: .82; }
+
+.btn-secondary {
+  width: 100%; display: block;
+  background: transparent; color: var(--mocha);
+  border: 1.5px solid #8C7B6B40;
+  border-radius: 14px; padding: 15px 20px;
+  font-size: 15px; font-weight: 500;
+  margin-top: 10px;
+}
+
+.btn-ghost {
+  background: transparent; color: var(--mocha);
+  font-size: 14px; padding: 10px 14px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-ghost:hover { background: #C9A88212; }
+
+.btn-dark {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--espresso); color: var(--linen);
+  border-radius: 14px; padding: 16px 20px;
+  font-size: 15px; font-weight: 500; text-decoration: none;
+}
+.btn-outline {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: transparent; color: var(--espresso);
+  border: 1.5px solid #2B252135;
+  border-radius: 14px; padding: 15px 20px;
+  font-size: 15px; font-weight: 500; text-decoration: none;
+  margin-top: 10px;
+}
+
+/* ── ONBOARDING SCREEN ───────────────────────────── */
+.mode-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.mode-card {
+  background: var(--card); border: 2px solid #C9A88228;
+  border-radius: 16px; padding: 18px 20px;
+  cursor: pointer; transition: all .18s;
+  text-align: left; width: 100%;
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.mode-card:active { transform: scale(.98); }
+.mode-card.selected { border-color: var(--caramel); background: #C9A88210; }
+.mode-icon {
+  font-size: 28px; line-height: 1;
+  width: 44px; height: 44px;
+  background: var(--linen); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.mode-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.mode-sub   { font-size: 13px; color: var(--mocha); line-height: 1.5; }
+.mode-badge {
+  display: inline-block; margin-top: 6px;
+  font-size: 11px; padding: 2px 8px;
+  border-radius: 5px; font-weight: 500;
+}
+.badge-quick { background: #C9A88222; color: var(--mocha); }
+.badge-full  { background: #4A7D4C18; color: var(--ok); }
+
+/* ── RULE SCREEN ─────────────────────────────────── */
+.rule-block {
+  background: var(--card); border: 1px solid #C9A88230;
+  border-radius: 16px; padding: 20px;
+  margin-bottom: 16px;
+}
+.rule-line-en { font-size: 14px; color: var(--espresso); line-height: 1.6; font-weight: 500; }
+.rule-line-ru { font-size: 13px; color: var(--mocha); line-height: 1.5; margin-top: 1px; margin-bottom: 10px; }
+.irr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.irr-th { text-align: left; padding: 4px 6px; color: var(--mocha); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.irr-td { padding: 5px 6px; color: var(--espresso); }
+.irr-b  { font-weight: 600; }
+
+/* ── QUIZ HEADER ─────────────────────────────────── */
+.quiz-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0 12px;
+}
+.quiz-unit-label { font-size: 13px; font-weight: 600; color: var(--espresso); }
+.quiz-counter {
+  font-size: 13px; color: var(--mocha);
+  background: var(--card); border: 1px solid #C9A88230;
+  padding: 4px 12px; border-radius: 20px;
+}
+
+/* ── DOTS NAV ────────────────────────────────────── */
+.dots-row {
+  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 18px; flex-wrap: nowrap; overflow: hidden;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #C9A88235; flex-shrink: 0;
+  transition: all .2s; cursor: pointer;
+}
+.dot.done    { background: var(--caramel); }
+.dot.current { width: 18px; border-radius: 4px; background: var(--caramel); }
+.dot.wrong   { background: #D4856040; }
+
+/* ── QUESTION ────────────────────────────────────── */
+.q-card {
+  background: var(--card); border: 1px solid #C9A88230;
+  border-radius: 16px; padding: 22px 20px;
+  margin-bottom: 14px;
+}
+.q-en { font-size: 19px; font-weight: 500; line-height: 1.55; }
+.q-ru { font-size: 14px; color: var(--mocha); margin-top: 8px; line-height: 1.55; }
+
+/* ── MC OPTIONS ──────────────────────────────────── */
+.mc-option {
+  display: block; width: 100%;
+  text-align: left; font-size: 16px;
+  background: var(--card); color: var(--espresso);
+  border: 1.5px solid #C9A88228;
+  border-radius: 14px; padding: 15px 18px;
+  margin-bottom: 10px;
+  transition: all .15s;
+  position: relative; overflow: hidden;
+}
+.mc-option::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: transparent;
+  transition: background .15s;
+}
+.mc-option:not(:disabled):active { transform: scale(.98); }
+.mc-option.ok  { background: var(--ok-bg);  border-color: var(--ok);  color: var(--ok);  font-weight: 600; }
+.mc-option.err { background: var(--err-bg); border-color: var(--err); color: var(--err); }
+.mc-option.dim { background: #F2EDE4; border-color: transparent; color: #8C7B6B60; }
+
+/* ── FILL ────────────────────────────────────────── */
+.fill-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.fill-input {
+  flex: 1; padding: 15px 16px;
+  border: 1.5px solid #C9A88228; border-radius: 14px;
+  font-size: 16px; color: var(--espresso);
+  background: var(--card);
+  font-family: inherit;
+}
+.fill-input.ok  { background: var(--ok-bg);  border-color: var(--ok); }
+.fill-input.err { background: var(--err-bg); border-color: var(--err); }
+.fill-submit {
+  background: var(--caramel); color: var(--espresso);
+  border-radius: 14px; padding: 0 20px;
+  font-size: 15px; font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── WORD ORDER ──────────────────────────────────── */
+.wo-slot {
+  min-height: 56px; background: var(--card);
+  border: 1.5px dashed #C9A88240;
+  border-radius: 14px; padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.wo-slot.ok  { background: var(--ok-bg);  border: 1.5px solid var(--ok); }
+.wo-slot.err { border: 1.5px solid var(--err); }
+.wo-hint { font-size: 13px; color: #C9A88260; }
+.wo-pool { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+.chip {
+  background: var(--card); border: 1.5px solid #C9A88240;
+  border-radius: 8px; padding: 7px 13px;
+  font-size: 14px; color: var(--espresso);
+  font-family: inherit; cursor: pointer;
+  transition: all .15s;
+}
+.chip:active { transform: scale(.95); }
+.chip.placed {
+  background: #C9A88218; border-color: var(--caramel);
+  color: var(--espresso);
+}
+.chip.placed-ok {
+  background: var(--ok-bg); border-color: var(--ok);
+  color: var(--ok); font-weight: 600;
+}
+
+/* ── FEEDBACK ────────────────────────────────────── */
+@keyframes pop-in {
+  0%   { transform: scale(.92); opacity: 0; }
+  60%  { transform: scale(1.03); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.feedback {
+  border-radius: 14px; padding: 16px 18px;
+  margin-bottom: 12px;
+  animation: pop-in .22s ease both;
+}
+.feedback.ok  { background: var(--ok-bg);  border: 1px solid #4A7D4C30; }
+.feedback.err { background: var(--err-bg); border: 1px solid #9A322830; }
+.fb-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600; margin-bottom: 6px;
+}
+.fb-head.ok  { color: var(--ok); }
+.fb-head.err { color: var(--err); }
+.fb-icon { font-size: 18px; }
+.fb-exp  { font-size: 14px; color: var(--espresso); line-height: 1.6; }
+
+/* ── DONT-KNOW BTN ───────────────────────────────── */
+.btn-dontknow {
+  background: none; border: none;
+  color: #8C7B6B70; font-size: 13px;
+  padding: 6px 0; display: block;
+  margin: 0 auto 4px; width: 100%; text-align: right;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+
+/* ── STREAK BADGE ────────────────────────────────── */
+@keyframes streak-pop {
+  0%   { transform: translateY(-10px) scale(.8); opacity: 0; }
+  60%  { transform: translateY(2px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.streak {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #C9A88222; border: 1px solid var(--caramel);
+  border-radius: 20px; padding: 5px 12px;
+  font-size: 13px; font-weight: 600; color: var(--mocha);
+  animation: streak-pop .3s ease both;
+}
+
+/* ── UNIT DONE ───────────────────────────────────── */
+.score-display {
+  text-align: center; padding: 28px 20px;
+}
+.score-num {
+  font-size: 64px; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.score-ok  { color: var(--ok); }
+.score-err { color: var(--err); }
+.score-bar-wrap { height: 5px; background: #C9A88222; border-radius: 3px; margin: 12px 0 6px; }
+.score-bar-fill { height: 5px; border-radius: 3px; transition: width 1s ease; }
+
+/* ── FINAL ───────────────────────────────────────── */
+.unit-breakdown {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 16px;
+}
+.unit-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid #C9A88228;
+  border-radius: 12px; padding: 13px 16px;
+}
+.unit-row-title { font-size: 14px; font-weight: 500; }
+.unit-row-score { font-size: 13px; color: var(--mocha); }
+
+/* ── RETRY WRONGS ────────────────────────────────── */
+.retry-banner {
+  background: #C9A88212; border: 1px solid #C9A88240;
+  border-radius: 14px; padding: 16px 18px;
+  margin-bottom: 12px;
+}
+.retry-banner p { font-size: 14px; color: var(--espresso); line-height: 1.6; margin-bottom: 12px; }
+
+/* ── ANIMATIONS ──────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in .25s ease both; }
+</style>
+</head>
+<body>
+
+<div class="gbar-wrap"><div class="gbar-fill" id="gbar" style="width:0%"></div></div>
+<div id="root"></div>
+
+<script>
+// ─── TELEGRAM ──────────────────────────────────────────────────
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+tg?.setHeaderColor?.('#F2EDE4');
+tg?.setBackgroundColor?.('#F2EDE4');
+const TG_USER = tg?.initDataUnsafe?.user;
+const USER_NAME = TG_USER?.first_name || '';
+
+const BOT_LINK     = 'https://t.me/speakenglish_bot';
+const CHANNEL_LINK = 'https://t.me/lavlin_english';
+
+function haptic(t) {
+  if (!tg?.HapticFeedback) return;
+  if (t === 'ok')    tg.HapticFeedback.notificationOccurred('success');
+  else if (t === 'err') tg.HapticFeedback.notificationOccurred('error');
+  else tg.HapticFeedback.impactOccurred('light');
+}
+function openTg(url) {
+  if (tg?.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
+}
+
+// ─── UTILS ─────────────────────────────────────────────────────
+function norm(s = '') {
+  return s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[''`]/g, "'");
+}
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function checkAnswer(q, ans) {
+  if (q.type === 'mc')   return Number(ans) === q.correct;
+  if (q.type === 'fill') return q.ans.some(a => norm(a) === norm(ans));
+  if (q.type === 'wo')   return norm(ans) === norm(q.correct);
+  return false;
+}
+function grade(pct) {
+  if (pct >= 91) return 'Отлично — Present Perfect тебе покорился.';
+  if (pct >= 76) return 'Хорошо. Ещё пара моментов — и всё встанет на место.';
+  if (pct >= 51) return 'Уже лучше. Разбери ошибки и попробуй ещё раз.';
+  return 'Стоит повторить теорию — и попробовать снова.';
+}
+
+// ─── DATA ───────────────────────────────────────────────────────
+const UNITS = [
+  {
+    id: 1, en: 'Present Perfect', subEn: 'Affirmative & Negative', subRu: 'Утвердительные и отрицательные',
+    desc: 'have / has + V3. Утвердительные и отрицательные формы.',
+    refLines: [
+      ['Form: have / has + past participle (V3)', 'Образование: have / has + V3'],
+      ['✓  I have washed the dishes.   She has charged her phone.', '✓  I have washed. / She has charged.'],
+      ['✗  I haven\'t tidied my room.   He hasn\'t found his keys.', '✗  I haven\'t tidied. / He hasn\'t found.'],
+      ['Use: result or experience connected to now.', 'Результат или опыт, связанный с настоящим.'],
+    ],
+    verbs: [['break','broke','broken'],['bring','brought','brought'],['buy','bought','bought'],['do','did','done'],['eat','ate','eaten'],['find','found','found'],['go','went','gone'],['have','had','had'],['hurt','hurt','hurt'],['leave','left','left'],['lose','lost','lost'],['make','made','made'],['spend','spent','spent'],['take','took','taken']],
+    questions: [
+      {id:'1-1',type:'mc',en:'Mum has ___ the dishes.',ru:'Мама ___ посуду.',opts:['washed','wash','washes'],correct:0,expRu:'have/has + V3. wash → washed.'},
+      {id:'1-2',type:'fill',en:'Tom ___ (break) his leg.',ru:'Том ___ (break) ногу.',ans:['has broken'],expRu:'break → broke → broken. Tom = he → has broken.'},
+      {id:'1-3',type:'mc',en:'She ___ (charge) her phone. It\'s at 100%.',ru:'Она ___ телефон. Заряд 100%.',opts:['has charged','have charged','charged'],correct:0,expRu:'She → has. charge → charged.'},
+      {id:'1-4',type:'fill',en:'They ___ (buy) new trainers for PE.',ru:'Они ___ (buy) новые кроссовки.',ans:['have bought'],expRu:'buy → bought. They → have bought.'},
+      {id:'1-5',type:'mc',en:'I ___ (not tidy) my room yet.',ru:'Я ещё ___ комнату.',opts:["haven't tidied","hasn't tidied","didn't tidy"],correct:0,expRu:"I → haven't. tidy → tidied."},
+      {id:'1-6',type:'fill',en:'She ___ (hurt) her knee.',ru:'Она ___ (hurt) колено.',ans:['has hurt'],expRu:'hurt → hurt → hurt. Все три формы одинаковые!'},
+      {id:'1-7',type:'mc',en:'Jake ___ (lose) his headphones again!',ru:'Джейк ___ наушники снова!',opts:['has lost','have lost','lost'],correct:0,expRu:'Jake = he → has. lose → lost.'},
+      {id:'1-8',type:'fill',en:"Mum ___ (not find) her purse.",ru:'Мама ___ (not find) кошелёк.',ans:["hasn't found","has not found"],expRu:"Mum = she → hasn't. find → found."},
+      {id:'1-9',type:'mc',en:'Dad ___ (fix) the washing machine.',ru:'Папа ___ стиральную машину.',opts:['has fixed','have fixed','fixed'],correct:0,expRu:'Dad = he → has. fix → fixed.'},
+      {id:'1-10',type:'fill',en:'She ___ (take) her medicine, so she feels better.',ru:'Она ___ (take) лекарство — ей лучше.',ans:['has taken'],expRu:'take → took → taken. V3 = taken.'},
+      {id:'1-11',type:'mc',en:'We ___ (download) the new game. Want to play?',ru:'Мы ___ новую игру. Сыграем?',opts:['have downloaded','has downloaded','downloaded'],correct:0,expRu:'We → have. download → downloaded.'},
+      {id:'1-12',type:'fill',en:'They ___ (spend) all their pocket money.',ru:'Они ___ (spend) все карманные деньги.',ans:['have spent'],expRu:'spend → spent. They → have spent.'},
+    ]
+  },
+  {
+    id: 2, en: 'Present Perfect', subEn: 'Questions, Ever & Never', subRu: 'Вопросы, ever и never',
+    desc: 'Как строить вопросы. Короткие ответы. Ever vs Never.',
+    refLines: [
+      ['Questions: Have / Has + subject + V3 + ...?', 'Have / Has + подлежащее + V3 + ...?'],
+      ['Short answers: Yes, I have. / Yes, she has.', 'Короткие ответы повторяют вспомогательный глагол.'],
+      ['Ever (в вопросах): Have you ever lost your phone?', 'Ever = когда-либо, только в вопросах.'],
+      ['Never (в утверждениях): She has never lost her phone.', 'Never = никогда, в утвердительных предложениях.'],
+    ],
+    questions: [
+      {id:'2-1',type:'mc',en:'Have you charged your tablet? — Yes...',ru:'Ты зарядил(а) планшет? (✓)',opts:['Yes, I have.','Yes, I has.','Yes, I did.'],correct:0,expRu:'I → have. Повторяем вспомогательный глагол.'},
+      {id:'2-2',type:'mc',en:'Has Sam hurt his arm? — No...',ru:'Сэм повредил руку? (✗)',opts:["No, he hasn't.","No, he haven't.","No, he didn't."],correct:0,expRu:"Sam = he → hasn't."},
+      {id:'2-3',type:'fill',en:'Have Lily and Ben downloaded the app? — Yes, ___ ___.',ru:'Лили и Бен скачали приложение? — Yes, ___ ___.',ans:['they have'],expRu:'Lily and Ben = they → Yes, they have.'},
+      {id:'2-4',type:'mc',en:'Have you taken your pills, Tom? — No...',ru:'Ты принял таблетки, Том? (✗)',opts:["No, I haven't.","No, I hasn't.","No, I didn't."],correct:0,expRu:"I → haven't."},
+      {id:'2-5',type:'wo',ru:'Составь вопрос:',words:['Have','you','ever','been','to','London','?'],correct:'Have you ever been to London?',expRu:"Have + you + ever + V3 + ?  'been to' = бывал в."},
+      {id:'2-6',type:'wo',ru:'Составь вопрос:',words:['Have','you','ever','used','a','3D','printer','?'],correct:'Have you ever used a 3D printer?',expRu:'Have + you + ever + V3 (used) + ?'},
+      {id:'2-7',type:'wo',ru:'Составь вопрос:',words:['Has','your','dad','ever','fixed','a','computer','?'],correct:'Has your dad ever fixed a computer?',expRu:'Has + подлежащее + ever + V3 (fixed) + ?'},
+      {id:'2-8',type:'mc',en:'Anna ___ to the doctor. (never / go)',ru:'Анна никогда не ходила к врачу.',opts:['has never gone','have never gone','never goes'],correct:0,expRu:'Anna = she → has. go → gone. С never: has never gone.'},
+      {id:'2-9',type:'fill',en:'Have you ___ stayed in a hotel?',ru:'Have you ___ stayed in a hotel? (ever / never?)',ans:['ever'],expRu:"'Ever' — в вопросах. 'Never' — в утвердительных."},
+      {id:'2-10',type:'mc',en:'Has Mia lost her phone? — Yes...',ru:'Миа потеряла телефон? (✓)',opts:['Yes, she has.','Yes, she have.','Yes, she did.'],correct:0,expRu:'Mia = she → Yes, she has.'},
+      {id:'2-11',type:'mc',en:'My brother ___ a game. (never / finish)',ru:'Мой брат так и не закончил ни одну игру.',opts:['has never finished','have never finished','never finishes'],correct:0,expRu:'My brother = he → has. finish → finished. has never finished.'},
+      {id:'2-12',type:'wo',ru:'Составь вопрос:',words:['Has','your','sister','ever','broken','a','bone','?'],correct:'Has your sister ever broken a bone?',expRu:'Has + подлежащее + ever + V3 (broken) + ?'},
+    ]
+  },
+  {
+    id: 3, en: 'Past Simple vs PP', subEn: 'Choose the right tense', subRu: 'Выбери правильное время',
+    desc: 'Past Simple — конкретный момент. Present Perfect — связь с настоящим.',
+    refLines: [
+      ['Past Simple → конкретный завершённый момент в прошлом', 'Markers: yesterday · last week · ago · in 2023'],
+      ['Present Perfect → результат, опыт, новость — связь с сейчас', 'Markers: ever · never · already · yet · just · today'],
+    ],
+    questions: [
+      {id:'3-1',type:'mc',en:'I ___ (drop) my phone on the floor yesterday.',ru:'Я ___ (drop) телефон вчера.',opts:['dropped','have dropped','drop'],correct:0,expRu:"'Yesterday' → Past Simple: dropped."},
+      {id:'3-2',type:'mc',en:'Oh no! I ___ (drop) my phone!',ru:'О нет! Я ___ (drop) телефон!',opts:['have dropped','dropped','drop'],correct:0,expRu:'Реакция — результат виден сейчас → Present Perfect.'},
+      {id:'3-3',type:'mc',en:'She ___ (tidy) her room two hours ago.',ru:'Она ___ комнату два часа назад.',opts:['tidied','has tidied','tidy'],correct:0,expRu:"'Two hours ago' → Past Simple: tidied."},
+      {id:'3-4',type:'mc',en:'She ___ (tidy) her room. It looks great now!',ru:'Она ___ комнату. Теперь чисто!',opts:['has tidied','tidied','tidy'],correct:0,expRu:"'Looks great now' — результат → Present Perfect."},
+      {id:'3-5',type:'mc',en:'We ___ (go) to a shopping centre last Sunday.',ru:'Мы ___ в торговый центр в прошлое воскресенье.',opts:['went','have been','go'],correct:0,expRu:"'Last Sunday' → Past Simple: went."},
+      {id:'3-6',type:'mc',en:'Have you ever ___ (lose) your phone?',ru:'Ты когда-нибудь ___ (lose) телефон?',opts:['lost','lose','loses'],correct:0,expRu:"'Have you ever...' → Present Perfect. lose → lost."},
+      {id:'3-7',type:'mc',en:'He ___ (break) his arm in a skiing accident last winter.',ru:'Он ___ руку на горных лыжах прошлой зимой.',opts:['broke','has broken','break'],correct:0,expRu:"'Last winter' → Past Simple: broke."},
+      {id:'3-8',type:'mc',en:"He can't write. He ___ (break) his arm.",ru:'Он не может писать. Он ___ (break) руку.',opts:['has broken','broke','break'],correct:0,expRu:"Результат виден сейчас (can't write) → Present Perfect."},
+      {id:'3-9',type:'fill',en:'They have ___ ___ (spend) all their pocket money.',ru:'Они уже потратили все карманные деньги.',ans:['already spent'],expRu:"'Already' — маркер Present Perfect. have already spent."},
+      {id:'3-10',type:'mc',en:'My dad ___ (buy) a new laptop in January.',ru:'Мой папа ___ ноутбук в январе.',opts:['bought','has bought','buy'],correct:0,expRu:"'In January' → Past Simple: bought."},
+      {id:'3-11',type:'mc',en:"I ___ (not do) my homework yet.",ru:'Я ещё ___ домашнее задание.',opts:["haven't done","didn't do","not done"],correct:0,expRu:"'Yet' → Present Perfect: haven't done."},
+      {id:'3-12',type:'mc',en:'She ___ (try) the new game for the first time last Friday.',ru:'Она ___ новую игру впервые в прошлую пятницу.',opts:['tried','has tried','try'],correct:0,expRu:"'Last Friday' → Past Simple: tried."},
+    ]
+  }
+];
+
+const TOTAL_FULL = UNITS.reduce((a, u) => a + u.questions.length, 0);
+
+// Quick mode: only MC questions from all units, shuffled, 18 max
+function buildQuickQueue() {
+  const all = [];
+  UNITS.forEach(u => {
+    u.questions.filter(q => q.type === 'mc').forEach(q => all.push({...q, unitId: u.id, unitIdx: UNITS.indexOf(u)}));
+  });
+  return shuffle(all).slice(0, 18);
+}
+
+// ─── STATE ─────────────────────────────────────────────────────
+let S = {
+  screen: 'onboarding',  // onboarding | rule | quiz | unit_done | final
+  mode: 'full',          // 'quick' | 'full'
+  unitIdx: 0,
+  qIdx: 0,
+  answers: {},           // qId → {correct, userAns, skipped}
+  feedback: null,
+  fillVal: '',
+  wordPool: [], wordSel: [],
+  showRef: false,
+  streak: 0,
+  quickQueue: null,      // for quick mode
+  retryMode: false,
+  retryQueue: null,
+};
+
+function set(patch) { Object.assign(S, patch); render(); }
+
+// ─── QUEUE HELPERS ─────────────────────────────────────────────
+function getQueue() {
+  if (S.mode === 'quick') return S.quickQueue;
+  if (S.retryMode) return S.retryQueue;
+  return null; // full mode uses unit/qIdx
+}
+
+function currentQuestion() {
+  if (S.mode === 'quick' || S.retryMode) {
+    const q = getQueue()[S.qIdx];
+    return q;
+  }
+  return UNITS[S.unitIdx].questions[S.qIdx];
+}
+
+function currentUnit() {
+  if (S.mode === 'quick') {
+    const q = getQueue()[S.qIdx];
+    return UNITS[q.unitIdx];
+  }
+  return UNITS[S.unitIdx];
+}
+
+function totalQ() {
+  if (S.mode === 'quick' || S.retryMode) return getQueue().length;
+  return UNITS[S.unitIdx].questions.length;
+}
+
+function globalPct() {
+  if (S.mode === 'quick' || S.retryMode) {
+    return Math.round(S.qIdx / getQueue().length * 100);
+  }
+  const done = UNITS.slice(0, S.unitIdx).reduce((a, u) => a + u.questions.length, 0) + S.qIdx;
+  return Math.round(done / TOTAL_FULL * 100);
+}
+
+// ─── NAVIGATION ────────────────────────────────────────────────
+function initQ() {
+  const q = currentQuestion();
+  return {
+    fillVal: '',
+    wordPool: q?.type === 'wo' ? shuffle([...q.words]) : [],
+    wordSel: [],
+    feedback: null,
+  };
+}
+
+function startMode(mode) {
+  haptic('light');
+  const quickQueue = mode === 'quick' ? buildQuickQueue() : null;
+  set({ mode, quickQueue, screen: mode === 'quick' ? 'quiz' : 'rule', unitIdx: 0, qIdx: 0, answers: {}, streak: 0, retryMode: false, retryQueue: null, ...initQ() });
+}
+
+function proceedFromRule() {
+  haptic('light');
+  set({ screen: 'quiz', ...initQ() });
+}
+
+function submit(userAns) {
+  if (S.feedback) return;
+  const q = currentQuestion();
+  const correct = checkAnswer(q, userAns);
+  haptic(correct ? 'ok' : 'err');
+  const correctAns = q.type === 'mc' ? q.opts[q.correct] : (q.ans ? q.ans[0] : q.correct);
+  S.answers[q.id] = { correct, userAns, skipped: false };
+  const streak = correct ? S.streak + 1 : 0;
+  set({ feedback: { correct, correctAns, expRu: q.expRu }, streak });
+  if (tg?.MainButton) {
+    tg.MainButton.setText(nextLabel());
+    tg.MainButton.show();
+    tg.MainButton.offClick(goNext);
+    tg.MainButton.onClick(goNext);
+  }
+}
+
+function dontKnow() {
+  if (S.feedback) return;
+  const q = currentQuestion();
+  haptic('light');
+  S.answers[q.id] = { correct: false, userAns: null, skipped: true };
+  const correctAns = q.type === 'mc' ? q.opts[q.correct] : (q.ans ? q.ans[0] : q.correct);
+  set({ feedback: { correct: false, correctAns, expRu: q.expRu }, streak: 0 });
+  if (tg?.MainButton) {
+    tg.MainButton.setText(nextLabel());
+    tg.MainButton.show();
+    tg.MainButton.offClick(goNext);
+    tg.MainButton.onClick(goNext);
+  }
+}
+
+function nextLabel() {
+  if (S.mode === 'quick' || S.retryMode) {
+    return S.qIdx === getQueue().length - 1 ? 'Завершить →' : 'Далее →';
+  }
+  const unit = UNITS[S.unitIdx];
+  const lastQ = S.qIdx === unit.questions.length - 1;
+  const lastU = S.unitIdx === UNITS.length - 1;
+  return lastQ ? (lastU ? 'Завершить тест →' : 'Следующий юнит →') : 'Далее →';
+}
+
+function goNext() {
+  if (tg?.MainButton) { tg.MainButton.hide(); tg.MainButton.offClick(goNext); }
+  haptic('light');
+
+  // quick / retry mode
+  if (S.mode === 'quick' || S.retryMode) {
+    const last = S.qIdx === getQueue().length - 1;
+    if (last) { set({ screen: 'final', feedback: null }); }
+    else { const ni = S.qIdx + 1; set({ qIdx: ni, ...initQ() }); }
+    return;
+  }
+
+  // full mode
+  const unit = UNITS[S.unitIdx];
+  const lastQ = S.qIdx === unit.questions.length - 1;
+  if (lastQ) {
+    set({ screen: 'unit_done', feedback: null });
+  } else {
+    set({ qIdx: S.qIdx + 1, ...initQ() });
+  }
+}
+
+function goNextUnit() {
+  haptic('light');
+  const ni = S.unitIdx + 1;
+  set({ screen: 'rule', unitIdx: ni, qIdx: 0, ...initQ() });
+}
+
+function retryUnit() {
+  haptic('light');
+  const u = UNITS[S.unitIdx];
+  const newAns = { ...S.answers };
+  u.questions.forEach(q => delete newAns[q.id]);
+  set({ answers: newAns, screen: 'quiz', qIdx: 0, streak: 0, ...initQ() });
+}
+
+function goToQ(i) {
+  if (i === S.qIdx) return;
+  haptic('light');
+  set({ qIdx: i, ...initQ() });
+}
+
+function retryWrong() {
+  haptic('light');
+  let wrong;
+  if (S.mode === 'quick') {
+    wrong = S.quickQueue.filter(q => !S.answers[q.id]?.correct);
+  } else {
+    wrong = [];
+    UNITS.forEach(u => u.questions.forEach(q => { if (!S.answers[q.id]?.correct) wrong.push({...q, unitIdx: UNITS.indexOf(u)}); }));
+  }
+  set({ retryMode: true, retryQueue: shuffle(wrong), qIdx: 0, answers: {}, streak: 0, ...initQ() });
+}
+
+// ─── WORD ORDER ────────────────────────────────────────────────
+function tapPool(i) {
+  haptic('light');
+  const pool = [...S.wordPool], sel = [...S.wordSel];
+  sel.push(pool.splice(i, 1)[0]);
+  set({ wordPool: pool, wordSel: sel });
+}
+function removeWo(i) {
+  haptic('light');
+  const pool = [...S.wordPool], sel = [...S.wordSel];
+  pool.push(sel.splice(i, 1)[0]);
+  set({ wordPool: pool, wordSel: sel });
+}
+
+// ─── BACK BUTTON ───────────────────────────────────────────────
+function setupBack() {
+  if (!tg?.BackButton) return;
+  if (S.screen === 'onboarding') {
+    tg.BackButton.hide();
+  } else {
+    tg.BackButton.show();
+    tg.BackButton.offClick(handleBack);
+    tg.BackButton.onClick(handleBack);
+  }
+}
+function handleBack() {
+  haptic('light');
+  if (tg?.MainButton) tg.MainButton.hide();
+  if (S.screen === 'rule') set({ screen: 'onboarding' });
+  else if (S.screen === 'quiz' || S.screen === 'unit_done') set({ screen: 'onboarding', retryMode: false });
+  else if (S.screen === 'final') set({ screen: 'onboarding', retryMode: false });
+}
+
+// ─── RENDER ────────────────────────────────────────────────────
+function render() {
+  setupBack();
+  document.getElementById('gbar').style.width = globalPct() + '%';
+  const root = document.getElementById('root');
+
+  // ── ONBOARDING ─────────────────────────────────────────────
+  if (S.screen === 'onboarding') {
+    const hasProgress = Object.keys(S.answers).length > 0;
+    root.innerHTML = `
+      <div class="screen fade-in" style="padding-top:32px">
+        <span class="label">@speakenglish.kate</span>
+        <h1 class="title">Grammar<br/>Trainer</h1>
+        <p style="font-size:15px;color:var(--mocha);line-height:1.7;margin-bottom:28px">
+          Present Perfect — 3 юнита, 36 заданий.<br/>Выбери формат:
+        </p>
+        <div class="mode-cards">
+          <button class="mode-card ${S.mode==='quick'?'selected':''}" onclick="set({mode:'quick'})">
+            <div class="mode-icon">⚡</div>
+            <div>
+              <div class="mode-title">Быстрый</div>
+              <div class="mode-sub">18 вопросов, только выбор варианта.<br/>Около 5 минут.</div>
+              <span class="mode-badge badge-quick">MC only · без ввода текста</span>
+            </div>
+          </button>
+          <button class="mode-card ${S.mode==='full'?'selected':''}" onclick="set({mode:'full'})">
+            <div class="mode-icon">📚</div>
+            <div>
+              <div class="mode-title">Полный</div>
+              <div class="mode-sub">36 заданий: выбор, ввод, порядок слов.<br/>Около 15 минут.</div>
+              <span class="mode-badge badge-full">Все форматы · с правилами</span>
+            </div>
+          </button>
+        </div>
+        <button class="btn-primary" onclick="startMode(S.mode)">
+          ${hasProgress ? 'Начать заново →' : 'Начать →'}
+        </button>
+        ${hasProgress ? `<button class="btn-secondary" onclick="set({screen:'final'})">Посмотреть результаты</button>` : ''}
+      </div>`;
+    return;
+  }
+
+  // ── RULE SCREEN ────────────────────────────────────────────
+  if (S.screen === 'rule') {
+    const u = UNITS[S.unitIdx];
+    root.innerHTML = `
+      <div class="screen fade-in" style="padding-top:28px">
+        <span class="label">Unit ${u.id} из ${UNITS.length}</span>
+        <h2 class="title">${u.en}<br/><span style="font-size:22px;font-weight:500">${u.subEn}</span></h2>
+        <div class="rule-block">
+          ${u.refLines.map(([en, ru]) => `
+            <div class="rule-line-en">${en}</div>
+            <div class="rule-line-ru">${ru}</div>
+          `).join('')}
+          ${u.verbs ? `
+            <div style="margin-top:16px;border-top:1px solid var(--linen);padding-top:14px">
+              <div style="font-size:11px;color:var(--mocha);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Irregular Verbs</div>
+              <table class="irr-table"><thead><tr>
+                <th class="irr-th">Base</th><th class="irr-th">Past Simple</th><th class="irr-th">Past Participle</th>
+              </tr></thead><tbody>
+                ${u.verbs.map(([b, ps, pp], i) => `<tr style="background:${i%2?'#C9A88210':'transparent'}">
+                  <td class="irr-td irr-b">${b}</td><td class="irr-td">${ps}</td><td class="irr-td">${pp}</td>
+                </tr>`).join('')}
+              </tbody></table>
+            </div>` : ''}
+        </div>
+        <button class="btn-primary" onclick="proceedFromRule()">Понял, поехали →</button>
+        <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="set({screen:'onboarding'})">← Назад</button>
+      </div>`;
+    return;
+  }
+
+  const q = currentQuestion();
+  const unit = currentUnit();
+
+  // ── UNIT DONE ──────────────────────────────────────────────
+  if (S.screen === 'unit_done') {
+    const u = UNITS[S.unitIdx];
+    const correct = u.questions.filter(qq => S.answers[qq.id]?.correct).length;
+    const total = u.questions.length;
+    const pct = Math.round(correct / total * 100);
+    const good = pct >= 70;
+    const isLast = S.unitIdx === UNITS.length - 1;
+    root.innerHTML = `
+      <div class="screen fade-in" style="padding-top:48px">
+        <span class="label">Unit ${u.id} завершён</span>
+        <h2 class="title">${u.en}<br/><span style="font-size:20px;font-weight:500">${u.subEn}</span></h2>
+        <div class="card">
+          <div class="score-display">
+            <div class="score-num ${good?'score-ok':'score-err'}">${correct}<span style="font-size:32px;color:var(--mocha)"> / ${total}</span></div>
+            <div style="font-size:13px;color:var(--mocha);margin-top:6px">${pct}%</div>
+            <div class="score-bar-wrap"><div class="score-bar-fill" style="width:${pct}%;background:${good?'var(--ok)':'var(--err)'}"></div></div>
+          </div>
+        </div>
+        ${!isLast ? `<button class="btn-primary" onclick="goNextUnit()">Следующий юнит →</button>` : ''}
+        <button class="${isLast?'btn-primary':'btn-secondary'}" onclick="set({screen:'final'})">
+          ${isLast ? 'Завершить тест →' : 'К итогам'}
+        </button>
+        <button class="btn-secondary" onclick="retryUnit()">Повторить юнит</button>
+        <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:4px" onclick="set({screen:'onboarding'})">← На главную</button>
+      </div>`;
+    return;
+  }
+
+  // ── FINAL ──────────────────────────────────────────────────
+  if (S.screen === 'final') {
+    const totalAnswered = Object.keys(S.answers).length;
+    const correct = Object.values(S.answers).filter(a => a.correct).length;
+    const total = S.mode === 'quick' ? (S.quickQueue?.length || 18) : TOTAL_FULL;
+    const pct = totalAnswered ? Math.round(correct / totalAnswered * 100) : 0;
+    const good = pct >= 70;
+    const wrongCount = Object.values(S.answers).filter(a => !a.correct).length;
+    const greeting = USER_NAME ? `${USER_NAME}, ` : '';
+
+    if (tg?.MainButton) {
+      tg.MainButton.setText('Записаться на пробный урок');
+      tg.MainButton.show();
+      tg.MainButton.offClick(() => openTg(BOT_LINK));
+      tg.MainButton.onClick(() => openTg(BOT_LINK));
+    }
+
+    const unitRows = S.mode === 'full' ? UNITS.map(u => {
+      const uc = u.questions.filter(qq => S.answers[qq.id]?.correct).length;
+      const ua = u.questions.filter(qq => S.answers[qq.id]).length;
+      if (!ua) return '';
+      return `<div class="unit-row">
+        <div class="unit-row-title">${u.en} — ${u.subEn}</div>
+        <div class="unit-row-score">${uc} / ${u.questions.length}</div>
+      </div>`;
+    }).join('') : '';
+
+    root.innerHTML = `
+      <div class="screen fade-in" style="padding-top:48px">
+        <span class="label">Тест завершён</span>
+        <h2 class="title">${greeting}итог</h2>
+        <div class="card">
+          <div class="score-display">
+            <div class="score-num ${good?'score-ok':'score-err'}">${correct}<span style="font-size:32px;color:var(--mocha)"> / ${totalAnswered}</span></div>
+            <div style="font-size:13px;color:var(--mocha);margin-top:6px">${pct}%</div>
+            <div class="score-bar-wrap"><div class="score-bar-fill" style="width:${pct}%;background:${good?'var(--ok)':'var(--err)'}"></div></div>
+            <p style="font-size:15px;color:var(--espresso);line-height:1.65;margin-top:16px">${grade(pct)}</p>
+          </div>
+        </div>
+        ${unitRows ? `<div class="unit-breakdown">${unitRows}</div>` : ''}
+        ${wrongCount > 0 ? `
+          <div class="retry-banner">
+            <p>Ошибок: ${wrongCount}. Разобрать только их?</p>
+            <button class="btn-primary" onclick="retryWrong()">Повторить ошибки →</button>
+          </div>` : ''}
+        <div class="card" style="margin-bottom:12px">
+          <p style="font-size:14px;color:var(--mocha);line-height:1.65;margin-bottom:16px">
+            Хочешь разобраться с английским глубже — под твою задачу?
+          </p>
+          <button class="btn-dark" onclick="openTg('${BOT_LINK}')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.71l-1.686 7.94c-.127.563-.46.7-.933.435l-2.573-1.895-1.241 1.194c-.138.138-.253.253-.518.253l.185-2.624 4.775-4.314c.208-.184-.045-.287-.321-.103L7.67 14.555l-2.528-.79c-.549-.171-.56-.549.114-.814l9.877-3.806c.459-.168.86.103.797.565z"/></svg>
+            Написать в бота
+          </button>
+          <button class="btn-outline" onclick="openTg('${CHANNEL_LINK}')">
+            Канал @lavlin_english
+          </button>
+        </div>
+        <button class="btn-ghost" style="width:100%;justify-content:center" onclick="set({screen:'onboarding'})">← На главную</button>
+      </div>`;
+    return;
+  }
+
+  // ── QUIZ ───────────────────────────────────────────────────
+  const total = totalQ();
+  const { feedback, fillVal, wordPool, wordSel } = S;
+
+  const dots = Array.from({ length: total }, (_, i) => {
+    const qItem = (S.mode === 'quick' || S.retryMode) ? getQueue()[i] : unit.questions[i];
+    const a = S.answers[qItem?.id];
+    let cls = 'dot';
+    if (i === S.qIdx) cls += ' current';
+    else if (a?.correct) cls += ' done';
+    else if (a && !a.correct) cls += ' wrong';
+    return `<span class="${cls}" onclick="goToQ(${i})"></span>`;
+  }).join('');
+
+  // answer area
+  let answerHtml = '';
+  if (q.type === 'mc') {
+    answerHtml = q.opts.map((opt, i) => {
+      let cls = 'mc-option';
+      if (feedback) {
+        if (i === q.correct) cls += ' ok';
+        else if (i === Number(S.answers[q.id]?.userAns) && !feedback.correct) cls += ' err';
+        else cls += ' dim';
+      }
+      return `<button class="${cls}" ${feedback?'disabled':''} onclick="submit(${i})">${opt}</button>`;
+    }).join('');
+  } else if (q.type === 'fill') {
+    const fcls = feedback ? (feedback.correct ? 'ok' : 'err') : '';
+    answerHtml = `
+      <div class="fill-row">
+        <input class="fill-input ${fcls}" type="text"
+          value="${fillVal.replace(/"/g,'&quot;')}"
+          placeholder="Введи ответ…"
+          ${feedback ? 'disabled' : ''}
+          oninput="S.fillVal=this.value"
+          onkeydown="if(event.key==='Enter'&&!S.feedback&&S.fillVal.trim())submit(S.fillVal.trim())"/>
+        ${!feedback ? `<button class="fill-submit" onclick="if(S.fillVal.trim())submit(S.fillVal.trim())">OK</button>` : ''}
+      </div>
+      ${!feedback ? `<button class="btn-dontknow" onclick="dontKnow()">Не знаю →</button>` : ''}`;
+  } else if (q.type === 'wo') {
+    const slotOk = feedback?.correct;
+    const slotErr = feedback && !feedback.correct;
+    const slotCls = 'wo-slot' + (slotOk?' ok':slotErr?' err':'');
+    const slotContent = feedback && !feedback.correct
+      ? q.correct.split(' ').map(w => `<span class="chip placed-ok">${w}</span>`).join('')
+      : wordSel.length
+        ? wordSel.map((w, i) => `<button class="chip placed" onclick="removeWo(${i})">${w}</button>`).join('')
+        : `<span class="wo-hint">Составь предложение из слов ниже…</span>`;
+    answerHtml = `
+      <div class="${slotCls}">${slotContent}</div>
+      ${!feedback ? `<div class="wo-pool">${wordPool.map((w, i) => `<button class="chip" onclick="tapPool(${i})">${w}</button>`).join('')}</div>` : ''}
+      ${!feedback && wordSel.length === q.words.length
+        ? `<button class="btn-primary" style="width:auto;padding:14px 32px" onclick="submit(S.wordSel.join(' '))">Проверить</button>`
+        : ''}
+      ${!feedback ? `<button class="btn-dontknow" onclick="dontKnow()">Не знаю →</button>` : ''}`;
+  }
+
+  // feedback block
+  const fbHtml = feedback ? `
+    <div class="feedback ${feedback.correct?'ok':'err'}">
+      <div class="fb-head ${feedback.correct?'ok':'err'}">
+        <span class="fb-icon">${feedback.correct?'✓':'✗'}</span>
+        ${feedback.correct
+          ? 'Правильно!'
+          : (q.type==='wo' ? 'Правильный порядок выше' : 'Правильно: ' + feedback.correctAns)}
+      </div>
+      <div class="fb-exp">${feedback.expRu}</div>
+    </div>` : '';
+
+  // streak badge
+  const streakHtml = (feedback?.correct && S.streak >= 3)
+    ? `<div style="text-align:center;margin-bottom:10px"><span class="streak">🔥 ${S.streak} подряд</span></div>`
+    : '';
+
+  // no TG MainButton fallback
+  const nextBtn = feedback && !(tg?.MainButton?.isVisible)
+    ? `<button class="btn-primary" onclick="goNext()">${nextLabel()}</button>` : '';
+
+  // rule toggle
+  const ruleToggleHtml = S.mode === 'full' ? `
+    <button onclick="set({showRef:!S.showRef})" style="background:none;border:none;display:flex;align-items:center;gap:6px;color:var(--mocha);font-size:13px;padding:0 0 10px;cursor:pointer">
+      <span style="font-size:10px;display:inline-block;transition:transform .2s;transform:${S.showRef?'rotate(90deg)':'none'}">▶</span>
+      Правило / Rule
+    </button>` : '';
+
+  root.innerHTML = `
+    <div style="padding: 0 0 8px">
+      <div class="quiz-header">
+        <span class="quiz-unit-label">${unit.en} — ${unit.subRu}</span>
+        <span class="quiz-counter">${S.qIdx+1} / ${total}</span>
+      </div>
+      <div class="dots-row">${dots}</div>
+      ${ruleToggleHtml}
+      ${S.showRef && S.mode==='full' ? `
+        <div class="rule-block" style="margin-bottom:14px">
+          ${unit.refLines.map(([en,ru])=>`<div class="rule-line-en">${en}</div><div class="rule-line-ru">${ru}</div>`).join('')}
+        </div>` : ''}
+      <div class="q-card">
+        ${q.en ? `<div class="q-en">${q.en}</div>` : ''}
+        ${q.ru ? `<div class="q-ru">${q.ru}</div>` : ''}
+      </div>
+      ${answerHtml}
+      ${fbHtml}
+      ${streakHtml}
+      ${nextBtn}
+    </div>`;
+}
+
+function openBotMain() { openTg(BOT_LINK); }
+
+render();
+</script>
+</body>
+</html>
