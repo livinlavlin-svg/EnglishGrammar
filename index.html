@@ -380,8 +380,9 @@ tg?.setBackgroundColor?.('#F2EDE4');
 const TG_USER = tg?.initDataUnsafe?.user;
 const USER_NAME = TG_USER?.first_name || '';
 
-const CHANNEL_LINK = 'https://t.me/lavlin_english';
-const BOOKING_URL  = 'https://calendly.com/livinlavlin/30min';
+const CHANNEL_LINK  = 'https://t.me/lavlin_english';
+const BOOKING_URL   = 'https://calendly.com/livinlavlin/30min';
+const PERSONAL_LINK = 'https://t.me/ohlavlin';
 
 function haptic(t) {
   if (!tg?.HapticFeedback) return;
@@ -752,6 +753,11 @@ function render() {
           ${hasProgress ? 'Начать заново →' : 'Начать →'}
         </button>
         ${hasProgress ? `<button class="btn-secondary" onclick="set({screen:'final'})">Посмотреть результаты</button>` : ''}
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px">
+          <button class="btn-outline" onclick="goToBooking()">📅 Записаться на пробный урок</button>
+          <button class="btn-outline" onclick="goToPersonal()">💬 Задать вопрос</button>
+          <button class="btn-outline" onclick="goToChannel()">📢 Мой канал</button>
+        </div>
       </div>`;
     return;
   }
@@ -1008,8 +1014,9 @@ function render() {
     </div>`;
 }
 
-function goToBooking() { openExternal(BOOKING_URL); }
-function goToChannel() { openTg(CHANNEL_LINK); }
+function goToBooking()  { openExternal(BOOKING_URL); }
+function goToChannel()  { openTg(CHANNEL_LINK); }
+function goToPersonal() { openTg(PERSONAL_LINK); }
 
 render();
 </script>
