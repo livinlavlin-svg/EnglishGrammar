@@ -304,8 +304,8 @@ h2.title {
 .btn-dontknow {
   background: none; border: none;
   color: #8C7B6B70; font-size: 13px;
-  padding: 6px 0; display: block;
-  margin: 0 auto 4px; width: 100%; text-align: right;
+  padding: 8px 0; display: block;
+  margin: 2px 0 4px; width: 100%; text-align: center;
   text-decoration: underline; text-underline-offset: 3px;
 }
 
@@ -986,7 +986,7 @@ function render() {
     </button>` : '';
 
   root.innerHTML = `
-    <div style="padding: 16px 0 8px">
+    <div class="screen" style="padding-top:16px">
       <div class="quiz-header">
         <span class="quiz-unit-label">${unit.en} — ${unit.subRu}</span>
         <span class="quiz-counter">${S.qIdx+1} / ${total}</span>
