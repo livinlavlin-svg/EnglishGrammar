@@ -380,8 +380,8 @@ tg?.setBackgroundColor?.('#F2EDE4');
 const TG_USER = tg?.initDataUnsafe?.user;
 const USER_NAME = TG_USER?.first_name || '';
 
-const BOT_LINK     = 'https://t.me/speakenglish_bot';
-const CHANNEL_LINK = 'https://t.me/english.everyday';
+const CHANNEL_LINK = 'https://t.me/lavlin_english';
+const BOOKING_URL  = 'https://calendly.com/livinlavlin/30min';
 
 function haptic(t) {
   if (!tg?.HapticFeedback) return;
@@ -389,8 +389,14 @@ function haptic(t) {
   else if (t === 'err') tg.HapticFeedback.notificationOccurred('error');
   else tg.HapticFeedback.impactOccurred('light');
 }
+// t.me links
 function openTg(url) {
   if (tg?.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
+}
+// external links (Calendly, etc.)
+function openExternal(url) {
+  if (tg?.openLink) tg.openLink(url);
   else window.open(url, '_blank');
 }
 
@@ -598,12 +604,6 @@ function submit(userAns) {
   S.answers[q.id] = { correct, userAns, skipped: false };
   const streak = correct ? S.streak + 1 : 0;
   set({ feedback: { correct, correctAns, expRu: q.expRu }, streak });
-  if (tg?.MainButton) {
-    tg.MainButton.setText(nextLabel());
-    tg.MainButton.show();
-    tg.MainButton.offClick(goNext);
-    tg.MainButton.onClick(goNext);
-  }
 }
 
 function dontKnow() {
@@ -613,12 +613,6 @@ function dontKnow() {
   S.answers[q.id] = { correct: false, userAns: null, skipped: true };
   const correctAns = q.type === 'mc' ? q.opts[q.correct] : (q.ans ? q.ans[0] : q.correct);
   set({ feedback: { correct: false, correctAns, expRu: q.expRu }, streak: 0 });
-  if (tg?.MainButton) {
-    tg.MainButton.setText(nextLabel());
-    tg.MainButton.show();
-    tg.MainButton.offClick(goNext);
-    tg.MainButton.onClick(goNext);
-  }
 }
 
 function nextLabel() {
@@ -632,7 +626,6 @@ function nextLabel() {
 }
 
 function goNext() {
-  if (tg?.MainButton) { tg.MainButton.hide(); tg.MainButton.offClick(goNext); }
   haptic('light');
   window.scrollTo(0, 0);
 
@@ -859,12 +852,7 @@ function render() {
     const wrongCount = Object.values(S.answers).filter(a => !a.correct).length;
     const greeting = USER_NAME ? `${USER_NAME}, ` : '';
 
-    if (tg?.MainButton) {
-      tg.MainButton.setText('Записаться на пробный урок');
-      tg.MainButton.show();
-      tg.MainButton.offClick(goToBot);
-      tg.MainButton.onClick(goToBot);
-    }
+    if (tg?.MainButton) tg.MainButton.hide();
 
     const unitRows = S.mode === 'full' ? UNITS.map(u => {
       const uc = u.questions.filter(qq => S.answers[qq.id]?.correct).length;
@@ -898,11 +886,11 @@ function render() {
           <p style="font-size:14px;color:var(--mocha);line-height:1.65;margin-bottom:16px">
             Хочешь разобраться с английским глубже — под твою задачу?
           </p>
-          <button class="btn-dark" onclick="goToBot()">
+          <button class="btn-dark" onclick="goToBooking()">
             Записаться на пробный урок
           </button>
           <button class="btn-outline" onclick="goToChannel()">
-            Канал @english.everyday
+            Канал @lavlin_english
           </button>
         </div>
         <button class="btn-ghost" style="width:100%;justify-content:center" onclick="set({screen:'onboarding'})">← На главную</button>
@@ -998,7 +986,7 @@ function render() {
     </button>` : '';
 
   root.innerHTML = `
-    <div style="padding: 0 0 8px">
+    <div style="padding: 16px 0 8px">
       <div class="quiz-header">
         <span class="quiz-unit-label">${unit.en} — ${unit.subRu}</span>
         <span class="quiz-counter">${S.qIdx+1} / ${total}</span>
@@ -1020,7 +1008,7 @@ function render() {
     </div>`;
 }
 
-function goToBot()     { openTg(BOT_LINK); }
+function goToBooking() { openExternal(BOOKING_URL); }
 function goToChannel() { openTg(CHANNEL_LINK); }
 
 render();
