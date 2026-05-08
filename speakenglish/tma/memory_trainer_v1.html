@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Memory Phrases Trainer</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+
+:root{
+  --espresso:#2B2521;
+  --linen:#F2EDE4;
+  --caramel:#C9A882;
+  --mocha:#8C7B6B;
+  --ok:#4A7D4C;
+  --ok-bg:#EBF4EC;
+  --err:#9A3228;
+  --err-bg:#F5E8E6;
+  --card:#FFFDF9;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--linen)}
+body{font-family:'DM Sans','Helvetica Neue',Arial,sans-serif;background:var(--linen);color:var(--espresso);padding-top:var(--sat)}
+button{font-family:'DM Sans','Helvetica Neue',Arial,sans-serif;cursor:pointer}
+button:active{opacity:.82}
+::selection{background:var(--caramel);color:var(--espresso)}
+.app{max-width:480px;margin:0 auto;padding:0 16px calc(56px + var(--sab));min-height:100vh;background:var(--linen)}
+
+.prog-wrap{height:3px;background:#C9A88228;position:sticky;top:0;z-index:10;margin:0 -16px}
+.prog-bar{height:3px;background:var(--caramel);transition:width .35s ease}
+
+.btn-primary{background:var(--caramel);color:var(--espresso);border:none;border-radius:10px;padding:14px 20px;font-size:15px;font-weight:500;width:100%;display:block}
+.btn-secondary{background:transparent;color:var(--mocha);border:1.5px solid #8C7B6B50;border-radius:10px;padding:12px 20px;font-size:14px;width:100%;display:block;margin-top:10px}
+.btn-ghost{background:transparent;border:none;color:var(--mocha);font-size:13px;padding:8px 12px;border-radius:8px;display:inline-flex;align-items:center;gap:5px}
+.btn-ghost:hover{background:#C9A88215}
+.btn-tg{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--espresso);color:var(--linen);border:none;border-radius:10px;padding:14px 20px;font-size:15px;font-weight:500;width:100%;text-decoration:none;cursor:pointer}
+.btn-tg-outline{display:flex;align-items:center;justify-content:center;gap:9px;background:transparent;color:var(--espresso);border:1.5px solid #2B252140;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:500;width:100%;text-decoration:none;margin-top:10px;cursor:pointer}
+
+.card{background:var(--card);border-radius:14px;padding:18px 20px;border:1px solid #C9A88235;margin-bottom:12px}
+.unit-title{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:22px;font-weight:600;line-height:1.2}
+.unit-sub{font-size:12px;color:var(--mocha);margin-top:2px}
+.counter{font-size:12px;color:var(--mocha);background:var(--card);padding:4px 11px;border-radius:20px;border:1px solid #C9A88230;white-space:nowrap}
+.page-title{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:40px;font-weight:600;line-height:1.1;margin:0 0 14px}
+.result-title{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:32px;font-weight:600;line-height:1.15;margin:0 0 22px}
+.section-label{font-size:11px;color:var(--mocha);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+
+.ref-toggle{background:none;border:none;display:flex;align-items:center;gap:6px;color:var(--mocha);font-size:12px;padding:0;margin-bottom:8px}
+.ref-en{font-size:12px;color:var(--espresso);line-height:1.55}
+.ref-ru{font-size:11px;color:var(--mocha);line-height:1.4;margin-top:1px}
+
+.q-en{font-size:16px;line-height:1.6;font-weight:500}
+.q-ru{font-size:13px;color:var(--mocha);margin-top:5px;line-height:1.5}
+
+.mc-btn{display:block;width:100%;text-align:left;border-radius:10px;padding:13px 16px;font-size:15px;margin-bottom:8px;transition:all .18s;background:var(--card);border:1px solid #C9A88235;color:var(--espresso)}
+.mc-btn.ok{background:var(--ok-bg);border:1.5px solid var(--ok);color:var(--ok);font-weight:500}
+.mc-btn.err{background:var(--err-bg);border:1.5px solid var(--err);color:var(--err)}
+.mc-btn.dim{background:var(--linen);border:1px solid transparent;color:#8C7B6B80}
+
+.wo-slot{min-height:52px;background:var(--card);border:1px solid #C9A88235;border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wo-slot.ok{background:var(--ok-bg);border:1.5px solid var(--ok)}
+.wo-slot.err{border:1.5px solid var(--err)}
+.wo-placeholder{font-size:13px;color:#8C7B6B55}
+.wo-pool{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip-sel{background:#C9A88225;border:1px solid var(--caramel);border-radius:6px;padding:5px 10px;font-size:13px;color:var(--espresso)}
+.chip-sel-ok{background:var(--ok-bg);border:1px solid var(--ok);border-radius:6px;padding:5px 10px;font-size:13px;color:var(--ok);font-weight:500}
+.chip-pool{background:var(--card);border:1px solid #C9A88250;border-radius:6px;padding:6px 12px;font-size:13px;color:var(--espresso)}
+
+.fb{border-radius:10px;padding:13px 16px;margin-bottom:12px}
+.fb.ok{background:var(--ok-bg);border:1px solid #4A7D4C35}
+.fb.err{background:var(--err-bg);border:1px solid #9A322835}
+.fb-title{font-size:14px;font-weight:500;margin-bottom:4px}
+.fb-title.ok{color:var(--ok)}
+.fb-title.err{color:var(--err)}
+.fb-exp{font-size:13px;color:var(--espresso);line-height:1.55}
+
+.score-big{font-size:58px;font-weight:600;line-height:1}
+.score-ok{color:var(--ok)}
+.score-err{color:var(--err)}
+.prog-line{height:4px;background:var(--linen);border-radius:2px;margin:14px 0 0}
+.prog-fill{height:4px;border-radius:2px}
+
+.nav-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
+.nav-arrow{background:var(--card);border:1px solid #C9A88235;border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--mocha);flex-shrink:0}
+.nav-arrow:disabled{opacity:.3;cursor:default}
+.nav-dots{display:flex;gap:4px;align-items:center;flex:1;justify-content:center;overflow:hidden;padding:0 4px}
+.dot{width:6px;height:6px;border-radius:50%;background:#C9A88240;flex-shrink:0;transition:all .2s}
+.dot.done{background:var(--caramel)}
+.dot.current{width:16px;border-radius:3px;background:var(--caramel)}
+.dot.skipped{background:#8C7B6B40}
+
+.skip-row{display:flex;justify-content:flex-end;margin-bottom:4px}
+.btn-skip{background:none;border:none;font-size:12px;color:var(--mocha);padding:4px 0;text-decoration:underline;text-underline-offset:2px}
+
+.unit-jump{display:flex;gap:6px;margin-bottom:14px}
+.unit-pill{flex:1;background:var(--card);border:1px solid #C9A88235;border-radius:8px;padding:7px 6px;font-size:11px;color:var(--mocha);text-align:center;line-height:1.3}
+.unit-pill.active{background:#C9A88218;border-color:var(--caramel);color:var(--espresso);font-weight:500}
+.unit-pill.done{background:#EBF4EC18;border-color:#4A7D4C40;color:var(--ok)}
+
+.cover-unit-card{background:var(--card);border:1px solid #C9A88235;border-radius:14px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .18s;display:flex;gap:14px;align-items:flex-start}
+.cover-num{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:28px;font-weight:600;color:var(--caramel);min-width:28px;line-height:1}
+.cover-unit-title{font-size:14px;font-weight:500;color:var(--espresso);margin-bottom:3px}
+.cover-unit-sub{font-size:12px;color:var(--mocha);line-height:1.5}
+.cover-tag{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid #C9A88240;color:var(--mocha);display:inline-block;margin-right:4px;margin-top:5px}
+
+.unit-result-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:var(--card);border-radius:12px;border:1px solid #C9A88235;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="root" class="app"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+tg?.setHeaderColor?.('#F2EDE4');
+tg?.setBackgroundColor?.('#F2EDE4');
+
+const LESSON_LINK  = 'https://t.me/ohlavlin';
+const CHANNEL_LINK = 'https://t.me/lavlin_english';
+
+function openLesson(){ openTg(LESSON_LINK); }
+
+function haptic(type){
+  if(!tg?.HapticFeedback) return;
+  if(type==='success') tg.HapticFeedback.notificationOccurred('success');
+  else if(type==='error') tg.HapticFeedback.notificationOccurred('error');
+  else tg.HapticFeedback.impactOccurred('light');
+}
+function openTg(url){
+  if(tg?.openTelegramLink) tg.openTelegramLink(url);
+  else window.open(url,'_blank');
+}
+function norm(s=""){return s.trim().toLowerCase().replace(/\s+/g," ").replace(/[''`]/g,"'");}
+function checkAnswer(q,ans){
+  if(q.type==="mc") return Number(ans)===q.correct;
+  if(q.type==="wo") return norm(ans)===norm(q.correct);
+  return false;
+}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function pluralErrors(n){
+  if(n===1) return`${n} ошибку`;
+  if(n>=2&&n<=4) return`${n} ошибки`;
+  return`${n} ошибок`;
+}
+function goToResults(){
+  if(tg?.MainButton) tg.MainButton.hide();
+  setState({screen:'results',retryMode:false,retryQueue:[],retryPos:0,feedback:null});
+}
+
+// ─── CONTENT ─────────────────────────────────────────────────
+const UNITS=[
+  {
+    id:1,en:"Remember & Forget",subEn:"Infinitive vs Gerund",subRu:"Инфинитив или герундий",
+    desc:"Глаголы remember и forget меняют смысл в зависимости от формы после них: инфинитив — о будущем действии, герундий — о прошлом.",
+    tags:["12 заданий","multiple choice"],
+    refLines:[
+      ["remember + to-infinitive → reminder: don't forget to do it","remember + инфинитив → напоминание: «не забудь сделать»"],
+      ["remember + -ing → memory: I can recall doing it","remember + герундий → воспоминание: «помню, как делал»"],
+      ["forget + to-infinitive → oops: I didn't do it","forget + инфинитив → забыл сделать (и не сделал)"],
+      ["forget + -ing → can't recall having done it","forget + герундий → не помню, что это делал"],
+      ["✓ Remember to lock the door.  (reminder — do it!)","✓ Remember to lock the door.  (напоминание — сделай!)"],
+      ["✓ I remember locking the door. (I'm sure I did it)","✓ I remember locking the door. (помню, что запер)"],
+    ],
+    questions:[
+      {id:"1-1",type:"mc",en:"Please remember ___ the lights when you leave.",ru:"Пожалуйста, не забудь выключить свет, когда уходишь.",opts:["to switch off","switching off","switch"],correct:0,expRu:"remember + инфинитив = напоминание: «не забудь сделать». Действие ещё впереди."},
+      {id:"1-2",type:"mc",en:"I remember ___ the lights. I'm sure it's fine.",ru:"Я помню, что выключил(а) свет. Точно всё нормально.",opts:["switching off","to switch off","switch off"],correct:0,expRu:"remember + герундий = воспоминание о прошлом действии: «помню, как делал»."},
+      {id:"1-3",type:"mc",en:"She forgot ___ the report and her boss was angry.",ru:"Она забыла отправить отчёт, и босс был недоволен.",opts:["to send","sending","send"],correct:0,expRu:"forget + инфинитив = забыла сделать (не сделала). Отчёт так и не был отправлен."},
+      {id:"1-4",type:"mc",en:"I'll never forget ___ this song for the first time.",ru:"Я никогда не забуду, как впервые услышал(а) эту песню.",opts:["hearing","to hear","heard"],correct:0,expRu:"forget + герундий = незабываемое воспоминание. «Не забуду, как это было»."},
+      {id:"1-5",type:"mc",en:"Did you remember ___ bread on the way home?",ru:"Ты не забыл(а) купить хлеб по дороге домой?",opts:["to buy","buying","buy"],correct:0,expRu:"remember + инфинитив = вопрос о том, выполнено ли нужное действие."},
+      {id:"1-6",type:"mc",en:"He doesn't remember ___ the contract, but clearly he did.",ru:"Он не помнит, что подписал контракт, хотя очевидно подписал.",opts:["signing","to sign","signed"],correct:0,expRu:"remember + герундий = не может вспомнить прошлое действие, хотя оно произошло."},
+      {id:"1-7",type:"mc",en:"I remember ___ in this park as a little kid.",ru:"Я помню, как играл(а) в этом парке в детстве.",opts:["playing","to play","play"],correct:0,expRu:"remember + герундий = яркое воспоминание о прошлом."},
+      {id:"1-8",type:"mc",en:"She forgot ___ her alarm and missed the morning meeting.",ru:"Она забыла поставить будильник и пропустила утреннее совещание.",opts:["to set","setting","set"],correct:0,expRu:"forget + инфинитив = забыла сделать (и не сделала). Встреча пропущена."},
+      {id:"1-9",type:"mc",en:"Remember ___ your passport — you'll need it at the border.",ru:"Не забудь взять паспорт — он понадобится на границе.",opts:["to take","taking","take"],correct:0,expRu:"remember + инфинитив = прямое напоминание о нужном действии."},
+      {id:"1-10",type:"mc",en:"I'll always remember ___ her at that rainy bus stop.",ru:"Я всегда буду помнить, как встретил(а) её на той дождливой остановке.",opts:["meeting","to meet","met"],correct:0,expRu:"remember + герундий = незабываемый момент из прошлого."},
+      {id:"1-11",type:"mc",en:"He forgot ___ the car and someone took his bag.",ru:"Он забыл запереть машину, и кто-то забрал его сумку.",opts:["to lock","locking","lock"],correct:0,expRu:"forget + инфинитив = забыл сделать (не сделал). Последствия налицо."},
+      {id:"1-12",type:"mc",en:"I remember ___ so nervous before my first job interview.",ru:"Я помню, как был(а) так взволнован(а) перед первым собеседованием.",opts:["being","to be","been"],correct:0,expRu:"remember + герундий = воспоминание о прошлом состоянии или действии."},
+    ]
+  },
+  {
+    id:2,en:"Memory Phrases",subEn:"Key Collocations",subRu:"Ключевые словосочетания",
+    desc:"Самые полезные устойчивые сочетания: slip one's mind, ring a bell, bear in mind, jog one's memory и другие.",
+    tags:["12 заданий","multiple choice"],
+    refLines:[
+      ["slip one's mind → вылетело из головы (forgot unintentionally)","slip one's mind → вылетело из головы, непроизвольно забыл"],
+      ["ring a bell → sounds familiar, I've heard it before","ring a bell → кажется знакомым, что-то напоминает"],
+      ["bear / keep in mind → remember this for later","bear / keep in mind → держи в голове, имей в виду"],
+      ["jog one's memory → help someone remember","jog one's memory → помочь кому-то вспомнить"],
+      ["off the top of one's head → without checking, roughly","off the top of one's head → навскидку, без подготовки"],
+      ["memory like a sieve · learn by heart · bring back memories","memory like a sieve · learn by heart · bring back memories"],
+    ],
+    questions:[
+      {id:"2-1",type:"mc",en:"Sorry — your appointment completely ___ my mind. Can we reschedule?",ru:"Прости, встреча с тобой полностью вылетела из головы. Можем перенести?",opts:["slipped","dropped","fell"],correct:0,expRu:"slip one's mind = вылетело из головы, непроизвольно забыл. «It slipped my mind» — очень частое выражение."},
+      {id:"2-2",type:"mc",en:"Does the name Alice Greenwood ___ a bell?",ru:"Имя Элис Гринвуд тебе ничего не напоминает?",opts:["ring","make","hit"],correct:0,expRu:"ring a bell = что-то знакомое, кажется, слышал/видел раньше. Всегда «ring a bell», не «make» или «hit»."},
+      {id:"2-3",type:"mc",en:"Please ___ in mind that the library closes at 6 pm today.",ru:"Пожалуйста, имей в виду, что библиотека сегодня закрывается в 18:00.",opts:["keep","put","set"],correct:0,expRu:"keep in mind / bear in mind = держи в голове, имей в виду. «Put in mind» и «set in mind» не используются."},
+      {id:"2-4",type:"mc",en:"Off the top of ___ head, I'd say the city has about two million people.",ru:"Навскидку, я бы сказал, что в городе около двух миллионов человек.",opts:["my","the","a"],correct:0,expRu:"off the top of my head = без подготовки, навскидку. Всегда с притяжательным местоимением: my/your/his head."},
+      {id:"2-5",type:"mc",en:"Can you show me the old photos? They might ___ my memory.",ru:"Можешь показать старые фотографии? Они могут помочь мне вспомнить.",opts:["jog","push","touch"],correct:0,expRu:"jog one's memory = помочь кому-то вспомнить, освежить память. «Jog» — лёгкий толчок, как при беге трусцой."},
+      {id:"2-6",type:"mc",en:"My gran has a memory like a ___. She forgets everything within minutes.",ru:"У моей бабушки дырявая память — она всё забывает через несколько минут.",opts:["sieve","hole","bucket"],correct:0,expRu:"have a memory like a sieve = дырявая память, всё утекает. Sieve — дуршлаг/сито."},
+      {id:"2-7",type:"mc",en:"These old letters ___ back so many wonderful memories.",ru:"Эти старые письма воскрешают столько прекрасных воспоминаний.",opts:["bring","make","take"],correct:0,expRu:"bring back memories = воскрешать воспоминания. Фиксированное сочетание: bring back, не make или take."},
+      {id:"2-8",type:"mc",en:"I learnt this poem ___ heart at school and still know it.",ru:"Я выучил(а) это стихотворение наизусть в школе и до сих пор помню.",opts:["by","in","with"],correct:0,expRu:"learn by heart = выучить наизусть. Всегда «by heart», не «in» или «with»."},
+      {id:"2-9",type:"mc",en:"As ___ as I can remember, we first met at a conference in 2019.",ru:"Насколько я помню, мы впервые встретились на конференции в 2019 году.",opts:["far","long","well"],correct:0,expRu:"as far as I can remember = насколько я помню. Устойчивое выражение: «as far as»."},
+      {id:"2-10",type:"mc",en:"I have no ___ of signing that document. Are you sure it was me?",ru:"Я абсолютно не помню, как подписывал(а) тот документ. Ты уверен, что это был я?",opts:["recollection","memory","reminder"],correct:0,expRu:"have no recollection of = абсолютно не помнить. «Recollection» — более формальное слово для «воспоминание»."},
+      {id:"2-11",type:"mc",en:"I can't ___ his face, but I know we've met somewhere.",ru:"Я не могу вспомнить откуда знаю его лицо, хотя точно где-то встречались.",opts:["place","find","recall"],correct:0,expRu:"can't place someone = не могу вспомнить откуда знаю. «Place» здесь = «идентифицировать в памяти»."},
+      {id:"2-12",type:"mc",en:"The whole evening is a ___. I can't remember a single thing.",ru:"Весь вечер — как в тумане. Я не помню вообще ничего.",opts:["blur","fog","smoke"],correct:0,expRu:"it's a blur = всё как в тумане, ничего не помню чётко. «Blur» — размытое пятно."},
+    ]
+  },
+  {
+    id:3,en:"Tip of the Tongue",subEn:"Idioms in Context",subRu:"Идиомы в контексте",
+    desc:"Яркие идиомы о памяти: on the tip of my tongue, go blank, a walk down memory lane, can't get it out of my head и другие.",
+    tags:["12 заданий","multiple choice","word order"],
+    refLines:[
+      ["on the tip of my tongue → I almost remember it!","on the tip of my tongue → вертится на языке, почти вспомнил"],
+      ["go blank → suddenly can't remember anything","go blank → мозг отключился, вдруг забыл всё"],
+      ["a walk / trip down memory lane → nostalgic look back","a walk / trip down memory lane → ностальгия по прошлому"],
+      ["can't get it out of my head → it's stuck in my memory","can't get it out of my head → не могу выбросить из головы"],
+      ["if memory serves (me right) → if I'm remembering correctly","if memory serves = если мне не изменяет память"],
+      ["commit something to memory → memorise it deliberately","commit to memory → целенаправленно запомнить"],
+    ],
+    questions:[
+      {id:"3-1",type:"mc",en:"His name is on the tip of my ___. It starts with D...",ru:"Его имя вертится у меня на языке. Начинается на Д...",opts:["tongue","lips","mind"],correct:0,expRu:"on the tip of one's tongue = вертится на языке, почти вспомнил. Всегда «tongue», не «lips» или «mind»."},
+      {id:"3-2",type:"mc",en:"I walked into the room and my mind went completely ___.",ru:"Я вошёл в комнату, и у меня вдруг всё вылетело из головы.",opts:["blank","empty","lost"],correct:0,expRu:"go blank = вдруг забыть всё, мозг отключился. «Blank» — чистый лист. Не «empty» или «lost» в этой идиоме."},
+      {id:"3-3",type:"mc",en:"Visiting my old school was a real ___ down memory lane.",ru:"Посещение старой школы стало настоящим путешествием в прошлое.",opts:["trip","run","drive"],correct:0,expRu:"a trip / walk down memory lane = ностальгическое путешествие в прошлое. «Trip» и «walk» — самые частые варианты."},
+      {id:"3-4",type:"mc",en:"That melody is so catchy — I just can't get it out of my ___.",ru:"Эта мелодия такая прилипчивая — просто не могу выбросить её из головы.",opts:["head","brain","ears"],correct:0,expRu:"can't get it out of my head = застряло в голове, не могу выбросить. Всегда «head» в этой идиоме."},
+      {id:"3-5",type:"mc",en:"___ memory serves, the meeting starts at half past two.",ru:"Если мне не изменяет память, встреча начинается в половине третьего.",opts:["If","As","When"],correct:0,expRu:"If memory serves (me right) = если мне не изменяет память. Устойчивое вводное выражение."},
+      {id:"3-6",type:"mc",en:"Students should commit key vocabulary ___ memory before the exam.",ru:"Студенты должны намеренно запомнить ключевую лексику перед экзаменом.",opts:["to","in","into"],correct:0,expRu:"commit to memory = целенаправленно запомнить. «Commit to» — фиксированный предлог."},
+      {id:"3-7",type:"wo",ru:"Составь фразу из слов:",words:["I","can't","get","that","song","out","of","my","head","."],correct:"I can't get that song out of my head .",expRu:"can't get something out of one's head = не могу выбросить из головы. Порядок слов фиксированный."},
+      {id:"3-8",type:"mc",en:"The smell of fresh bread always ___ back memories of my grandma's kitchen.",ru:"Запах свежего хлеба всегда вызывает воспоминания о кухне бабушки.",opts:["brings","makes","gets"],correct:0,expRu:"bring back memories = вызывать воспоминания. Всегда «bring back», не «make» или «get»."},
+      {id:"3-9",type:"mc",en:"Don't worry if you go ___ in the exam — take a breath and start again.",ru:"Не переживай, если на экзамене вдруг всё вылетит из головы — вдохни и начни снова.",opts:["blank","white","empty"],correct:0,expRu:"go blank = мозг вдруг отключился, всё вылетело. Именно «blank», не «white» или «empty»."},
+      {id:"3-10",type:"mc",en:"That photo is a lovely ___ down memory lane — look how young we were!",ru:"Это фото — прекрасное путешествие в прошлое — смотри, какими молодыми мы были!",opts:["walk","run","race"],correct:0,expRu:"a walk / trip down memory lane = ностальгия по прошлому. «Walk» — самый распространённый вариант."},
+      {id:"3-11",type:"wo",ru:"Составь фразу из слов:",words:["His","name","is","on","the","tip","of","my","tongue","."],correct:"His name is on the tip of my tongue .",expRu:"on the tip of one's tongue = вертится на языке. Классическая идиома о почти-воспоминании."},
+      {id:"3-12",type:"mc",en:"I've committed the safety code ___ memory — I never need to look it up.",ru:"Я намеренно запомнил(а) код безопасности — больше не нужно его искать.",opts:["to","in","into"],correct:0,expRu:"commit to memory = выучить наизусть, намеренно запомнить. Всегда предлог «to»."},
+    ]
+  },
+];
+
+const TOTAL_Q=UNITS.reduce((a,u)=>a+u.questions.length,0);
+
+let state={
+  screen:"cover",
+  unitIdx:0,qIdx:0,
+  answers:{},
+  feedback:null,wordPool:[],wordSel:[],
+  showRef:true,
+  retryMode:false,
+  retryQueue:[],
+  retryPos:0,
+};
+
+function setState(p){Object.assign(state,p);render();}
+
+function initQ(u,qi){
+  const q=u.questions[qi];
+  return{wordPool:q.type==="wo"?shuffle([...q.words]):[],wordSel:[],feedback:null};
+}
+
+function findFirstUnanswered(){
+  for(let ui=0;ui<UNITS.length;ui++){
+    const u=UNITS[ui];
+    for(let qi=0;qi<u.questions.length;qi++){
+      if(!state.answers[u.questions[qi].id]) return{ui,qi};
+    }
+  }
+  return{ui:0,qi:0};
+}
+
+function continueTest(){
+  const hasProgress=Object.keys(state.answers).length>0;
+  if(hasProgress){const r=findFirstUnanswered();startUnit(r.ui);}
+  else startUnit(0);
+}
+
+function startUnit(ui){
+  haptic('light');
+  setState({screen:"quiz",unitIdx:ui,qIdx:0,showRef:true,retryMode:false,retryQueue:[],retryPos:0,...initQ(UNITS[ui],0)});
+}
+
+function startRetry(){
+  const queue=[];
+  UNITS.forEach((u,ui)=>{
+    u.questions.forEach((q,qi)=>{
+      const ans=state.answers[q.id];
+      if(ans&&!ans.correct) queue.push({unitIdx:ui,qIdx:qi});
+    });
+  });
+  if(!queue.length) return;
+  haptic('light');
+  const first=queue[0];
+  const unit=UNITS[first.unitIdx];
+  setState({retryMode:true,retryQueue:queue,retryPos:0,screen:"quiz",unitIdx:first.unitIdx,qIdx:first.qIdx,showRef:true,...initQ(unit,first.qIdx)});
+}
+
+function submit(userAns){
+  const u=UNITS[state.unitIdx],q=u.questions[state.qIdx];
+  if(state.feedback) return;
+  const correct=checkAnswer(q,userAns);
+  haptic(correct?'success':'error');
+  const correctAns=q.type==="mc"?q.opts[q.correct]:q.correct;
+  state.answers[q.id]={correct,userAns,skipped:false};
+  setState({feedback:{correct,correctAns,expRu:q.expRu}});
+  if(tg?.MainButton){
+    tg.MainButton.setText(getNextLabel());
+    tg.MainButton.show();
+    tg.MainButton.offClick(goNext);
+    tg.MainButton.onClick(goNext);
+  }
+}
+
+function skipQ(){
+  const u=UNITS[state.unitIdx],q=u.questions[state.qIdx];
+  if(state.feedback) return;
+  haptic('light');
+  state.answers[q.id]={correct:false,userAns:null,skipped:true};
+  const correctAns=q.type==="mc"?q.opts[q.correct]:q.correct;
+  setState({feedback:{correct:false,correctAns,expRu:q.expRu}});
+  if(tg?.MainButton){
+    tg.MainButton.setText(getNextLabel());
+    tg.MainButton.show();
+    tg.MainButton.offClick(goNext);
+    tg.MainButton.onClick(goNext);
+  }
+}
+
+function getNextLabel(){
+  if(state.retryMode){
+    return state.retryPos===state.retryQueue.length-1?"Завершить повтор →":"Далее →";
+  }
+  const{unitIdx,qIdx}=state;
+  const unit=UNITS[unitIdx];
+  const lastQ=qIdx===unit.questions.length-1;
+  const lastU=unitIdx===UNITS.length-1;
+  return lastQ?(lastU?"Посмотреть результат →":"Следующий юнит →"):"Далее →";
+}
+
+function goNext(){
+  if(tg?.MainButton){tg.MainButton.hide();tg.MainButton.offClick(goNext);}
+
+  if(state.retryMode){
+    const nextPos=state.retryPos+1;
+    if(nextPos>=state.retryQueue.length){
+      haptic('light');
+      setState({screen:"retry_done",feedback:null});
+    } else {
+      const next=state.retryQueue[nextPos];
+      const unit=UNITS[next.unitIdx];
+      setState({retryPos:nextPos,unitIdx:next.unitIdx,qIdx:next.qIdx,showRef:false,...initQ(unit,next.qIdx),feedback:null});
+    }
+    return;
+  }
+
+  const{unitIdx,qIdx}=state;
+  const unit=UNITS[unitIdx];
+  const lastQ=qIdx===unit.questions.length-1;
+  if(lastQ){
+    haptic('light');
+    const lastU=unitIdx===UNITS.length-1;
+    setState({screen:lastU?"results":"unit_done",feedback:null});
+  } else {
+    const nqi=qIdx+1;
+    setState({qIdx:nqi,showRef:false,...initQ(unit,nqi),feedback:null});
+  }
+}
+
+function goNextUnit(){
+  haptic('light');
+  const ni=state.unitIdx+1;
+  if(ni<UNITS.length) startUnit(ni);
+}
+
+function retryUnit(){
+  haptic('light');
+  const u=UNITS[state.unitIdx];
+  const newAns={...state.answers};
+  u.questions.forEach(q=>delete newAns[q.id]);
+  setState({answers:newAns,screen:"quiz",qIdx:0,showRef:true,retryMode:false,...initQ(u,0),feedback:null});
+}
+
+function goToQ(i){
+  if(state.retryMode) return;
+  haptic('light');
+  if(i===state.qIdx) return;
+  const unit=UNITS[state.unitIdx];
+  const ans=state.answers[unit.questions[i]?.id];
+  if(ans){
+    setState({qIdx:i,feedback:{correct:ans.correct,correctAns:ans.skipped?"(пропущено)":(unit.questions[i].type==="mc"?unit.questions[i].opts[unit.questions[i].correct]:unit.questions[i].correct),expRu:unit.questions[i].expRu}});
+  } else {
+    setState({qIdx:i,...initQ(unit,i)});
+  }
+}
+
+function goToUnit(i){
+  if(state.retryMode) return;
+  haptic('light');
+  if(i===state.unitIdx){setState({screen:"quiz"});return;}
+  startUnit(i);
+}
+
+function unitStatus(i){
+  const u=UNITS[i];
+  const answered=u.questions.filter(q=>state.answers[q.id]).length;
+  if(answered===u.questions.length) return"done";
+  if(answered>0) return"partial";
+  return"new";
+}
+
+function updateBackButton(){
+  if(!tg?.BackButton) return;
+  if(state.screen==="cover"||state.retryMode){
+    tg.BackButton.hide();
+  } else {
+    tg.BackButton.show();
+    tg.BackButton.offClick(handleBack);
+    tg.BackButton.onClick(handleBack);
+  }
+}
+
+function handleBack(){
+  haptic('light');
+  if(tg?.MainButton) tg.MainButton.hide();
+  setState({screen:"cover",retryMode:false,retryQueue:[],retryPos:0,feedback:null});
+}
+
+// ─── WORD ORDER ───────────────────────────────────────────────
+function renderWoSlot(wordSel,feedback,q){
+  if(!wordSel.length&&!feedback) return`<div class="wo-slot"><span class="wo-placeholder">Собери фразу…</span></div>`;
+  const slotCls="wo-slot"+(feedback?(" "+(feedback.correct?"ok":"err")):"");
+  if(feedback&&!feedback.correct){
+    return`<div class="${slotCls}">${q.correct.split(" ").map(w=>`<span class="chip-sel-ok">${w}</span>`).join("")}</div>`;
+  }
+  return`<div class="${slotCls}">${wordSel.map((w,i)=>`<button class="chip-sel" onclick="removeWo(${i})">${w}</button>`).join("")}</div>`;
+}
+function tapPool(i){
+  haptic('light');
+  const pool=[...state.wordPool],sel=[...state.wordSel];
+  sel.push(pool.splice(i,1)[0]);
+  setState({wordPool:pool,wordSel:sel});
+}
+function removeWo(i){
+  haptic('light');
+  const pool=[...state.wordPool],sel=[...state.wordSel];
+  pool.push(sel.splice(i,1)[0]);
+  setState({wordPool:pool,wordSel:sel});
+}
+
+// ─── RENDER ───────────────────────────────────────────────────
+function render(){
+  updateBackButton();
+  const{screen,unitIdx,qIdx,answers,feedback,wordPool,wordSel,showRef,retryMode,retryQueue,retryPos}=state;
+  const root=document.getElementById("root");
+
+  // ── COVER ──────────────────────────────────────────────────
+  if(screen==="cover"){
+    const hasProgress=Object.keys(answers).length>0;
+    root.innerHTML=`
+      <div style="padding-top:40px">
+        <div class="section-label">@speakenglish.kate</div>
+        <h1 class="page-title">Memory<br/>Phrases</h1>
+        <p style="font-size:14px;color:var(--mocha);margin-bottom:24px;line-height:1.65">Фразы о памяти — 3 юнита, 36 заданий.<br/>Выбери с чего начать.</p>
+        <div style="margin-bottom:20px">
+          ${UNITS.map((u,i)=>{
+            const st=unitStatus(i);
+            const correct=u.questions.filter(q=>answers[q.id]?.correct).length;
+            const badge=st==="done"
+              ?`<span style="font-size:10px;color:var(--ok);background:#EBF4EC;padding:2px 7px;border-radius:4px;margin-left:6px">✓ ${correct}/${u.questions.length}</span>`
+              :st==="partial"
+              ?`<span style="font-size:10px;color:var(--caramel);background:#C9A88218;padding:2px 7px;border-radius:4px;margin-left:6px">${correct}/${u.questions.length}</span>`
+              :"";
+            return`<div class="cover-unit-card" onclick="startUnit(${i})">
+              <div class="cover-num">${i+1}</div>
+              <div style="flex:1">
+                <div class="cover-unit-title">${u.en} — ${u.subEn} ${badge}</div>
+                <div class="cover-unit-sub">${u.desc}</div>
+                <div style="margin-top:7px">${u.tags.map(t=>`<span class="cover-tag">${t}</span>`).join("")}</div>
+              </div>
+              <div style="font-size:18px;color:var(--caramel);align-self:center;padding-left:4px">›</div>
+            </div>`;
+          }).join("")}
+        </div>
+        <button class="btn-primary" onclick="continueTest()">
+          ${hasProgress?"Продолжить тест →":"Начать с Unit 1 →"}
+        </button>
+        ${hasProgress?`<button class="btn-secondary" onclick="setState({screen:'results'})">Посмотреть результат</button>`:""}
+      </div>`;
+    return;
+  }
+
+  // ── RESULTS ────────────────────────────────────────────────
+  if(screen==="results"){
+    if(tg?.MainButton){
+      tg.MainButton.setText("Записаться на пробный урок");
+      tg.MainButton.show();
+      tg.MainButton.offClick(openLesson);
+      tg.MainButton.onClick(openLesson);
+    }
+    const totalCorrect=Object.values(answers).filter(a=>a.correct).length;
+    const totalAnswered=Object.values(answers).length;
+    const pct=totalAnswered>0?Math.round(totalCorrect/TOTAL_Q*100):0;
+    const good=pct>=70;
+    const wrongIds=UNITS.flatMap(u=>u.questions.filter(q=>answers[q.id]&&!answers[q.id].correct).map(q=>q.id));
+    const wrongCount=wrongIds.length;
+
+    root.innerHTML=`
+      <div style="padding-top:54px">
+        <div class="section-label">Мой результат</div>
+        <h2 class="result-title">Итоговый<br/>результат</h2>
+        <div class="card" style="text-align:center;padding:28px 20px;margin-bottom:16px">
+          <div class="score-big ${good?"score-ok":"score-err"}">${totalCorrect}</div>
+          <div style="font-size:13px;color:var(--mocha);margin-top:4px">из ${TOTAL_Q} правильно · ${pct}%</div>
+          <div class="prog-line"><div class="prog-fill" style="width:${pct}%;background:${good?"var(--ok)":"var(--err)"}"></div></div>
+        </div>
+
+        ${UNITS.map((u,i)=>{
+          const correct=u.questions.filter(q=>answers[q.id]?.correct).length;
+          const answered=u.questions.filter(q=>answers[q.id]).length;
+          const wrong=u.questions.filter(q=>answers[q.id]&&!answers[q.id].correct).length;
+          const scoreColor=wrong>0?"var(--err)":answered===u.questions.length?"var(--ok)":"var(--mocha)";
+          const badge=wrong>0
+            ?`<span style="font-size:10px;color:var(--err)">${pluralErrors(wrong)}</span>`
+            :answered===u.questions.length
+            ?`<span style="font-size:10px;color:var(--ok)">Без ошибок ✓</span>`
+            :`<span style="font-size:10px;color:var(--mocha)">${answered}/${u.questions.length} пройдено</span>`;
+          return`<div class="unit-result-row">
+            <div>
+              <div style="font-size:13px;font-weight:500">Unit ${i+1} — ${u.en}</div>
+              <div style="font-size:11px;color:var(--mocha);margin-top:1px">${u.subEn}</div>
+              <div style="margin-top:3px">${badge}</div>
+            </div>
+            <div style="font-size:20px;font-weight:600;color:${scoreColor};flex-shrink:0;padding-left:12px">${correct}<span style="font-size:13px;font-weight:400;color:var(--mocha)">/${u.questions.length}</span></div>
+          </div>`;
+        }).join("")}
+
+        ${wrongCount>0?`<button class="btn-primary" style="margin-top:8px" onclick="startRetry()">Исправить ${pluralErrors(wrongCount)} →</button>`:""}
+
+        <button class="btn-tg" style="margin-top:${wrongCount>0?"10":"8"}px" onclick="openTg('${LESSON_LINK}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.71l-1.686 7.94c-.127.563-.46.7-.933.435l-2.573-1.895-1.241 1.194c-.138.138-.253.253-.518.253l.185-2.624 4.775-4.314c.208-.184-.045-.287-.321-.103L7.67 14.555l-2.528-.79c-.549-.171-.56-.549.114-.814l9.877-3.806c.459-.168.86.103.797.565z" fill="currentColor"/></svg>
+          Записаться на пробный урок
+        </button>
+        <button class="btn-tg-outline" onclick="openTg('${CHANNEL_LINK}')">
+          Канал @lavlin_english
+        </button>
+
+        <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="setState({screen:'cover',retryMode:false})">← К содержанию</button>
+      </div>`;
+    return;
+  }
+
+  // ── RETRY DONE ─────────────────────────────────────────────
+  if(screen==="retry_done"){
+    const retryCorrect=retryQueue.filter(({unitIdx:ui,qIdx:qi})=>{
+      const q=UNITS[ui].questions[qi];
+      return answers[q.id]?.correct;
+    }).length;
+    const retryTotal=retryQueue.length;
+    const good=retryCorrect>=Math.ceil(retryTotal*.7);
+    root.innerHTML=`
+      <div style="padding-top:54px">
+        <div class="section-label">Повтор завершён</div>
+        <h2 class="result-title">Работа<br/>над ошибками</h2>
+        <div class="card" style="text-align:center;padding:30px 20px;margin-bottom:16px">
+          <div class="score-big ${good?"score-ok":"score-err"}">${retryCorrect}</div>
+          <div style="font-size:13px;color:var(--mocha);margin-top:4px">из ${retryTotal} правильно</div>
+          <div class="prog-line"><div class="prog-fill" style="width:${Math.round(retryCorrect/retryTotal*100)}%;background:${good?"var(--ok)":"var(--err)"}"></div></div>
+          <p style="font-size:13px;color:var(--espresso);line-height:1.6;margin:14px 0 0">${good?"Отлично! Эти фразы начинают выходить на автомат.":"Не сдавайся — ещё один повтор, и они запомнятся."}</p>
+        </div>
+        <button class="btn-primary" onclick="setState({screen:'results'})">Посмотреть все результаты</button>
+        <button class="btn-secondary" onclick="setState({screen:'cover',retryMode:false,retryQueue:[],retryPos:0})">← К содержанию</button>
+      </div>`;
+    return;
+  }
+
+  // ── UNIT DONE ──────────────────────────────────────────────
+  if(screen==="unit_done"){
+    const unit=UNITS[unitIdx];
+    const correct=unit.questions.filter(q=>answers[q.id]?.correct).length;
+    const total=unit.questions.length,pct=Math.round(correct/total*100),good=pct>=70;
+    const isLast=unitIdx===UNITS.length-1;
+    root.innerHTML=`
+      <div style="padding-top:54px">
+        <div class="section-label">Unit ${unit.id} завершён</div>
+        <h2 class="result-title">${unit.en}<br/><span style="font-weight:400;font-size:24px">${unit.subEn}</span></h2>
+        <div class="card" style="text-align:center;padding:30px 20px;margin-bottom:16px">
+          <div class="score-big ${good?"score-ok":"score-err"}">${correct}</div>
+          <div style="font-size:13px;color:var(--mocha);margin-top:4px">из ${total} правильно · ${pct}%</div>
+          <div class="prog-line"><div class="prog-fill" style="width:${pct}%;background:${good?"var(--ok)":"var(--err)"}"></div></div>
+        </div>
+        ${!isLast?`<button class="btn-primary" onclick="goNextUnit()">Следующий юнит →</button>`:""}
+        <button class="${isLast?"btn-primary":"btn-secondary"}" onclick="setState({screen:'results'})">
+          ${isLast?"Посмотреть результат →":"Завершить тест"}
+        </button>
+        <button class="btn-secondary" style="margin-top:10px" onclick="retryUnit()">Повторить юнит</button>
+        <button class="btn-ghost" style="width:100%;justify-content:center;margin-top:6px" onclick="setState({screen:'cover'})">← К содержанию</button>
+      </div>`;
+    return;
+  }
+
+  // ── QUIZ ───────────────────────────────────────────────────
+  const unit=UNITS[unitIdx];
+  const q=unit.questions[qIdx];
+  const unitTotal=unit.questions.length;
+  const progPct=retryMode
+    ?(retryPos/retryQueue.length)*100
+    :(qIdx/unitTotal)*100;
+
+  const counterLabel=retryMode
+    ?`${retryPos+1} / ${retryQueue.length} ошибок`
+    :`${qIdx+1} / ${unitTotal}`;
+
+  const retryBadge=retryMode
+    ?`<span style="font-size:10px;color:var(--caramel);background:#C9A88218;padding:2px 8px;border-radius:4px;border:1px solid #C9A88240">Повтор ошибок</span>`
+    :"";
+
+  const dots=retryMode?"":unit.questions.map((qq,i)=>{
+    const a=answers[qq.id];
+    let cls="dot";
+    if(i===qIdx)cls+=" current";
+    else if(a&&a.correct)cls+=" done";
+    else if(a&&a.skipped)cls+=" skipped";
+    return`<span class="${cls}" onclick="goToQ(${i})" style="cursor:pointer"></span>`;
+  }).join("");
+
+  const navBar=retryMode
+    ?`<div style="margin-bottom:14px">${retryBadge}</div>`
+    :`<div class="nav-bar">
+        <button class="nav-arrow" onclick="if(${qIdx}>0)goToQ(${qIdx-1})" ${qIdx===0?"disabled":""}>‹</button>
+        <div class="nav-dots">${dots}</div>
+        <button class="nav-arrow" onclick="goToQ(${Math.min(qIdx+1,unitTotal-1)})" ${qIdx===unitTotal-1?"disabled":""}>›</button>
+      </div>`;
+
+  const jumpPills=retryMode?"":UNITS.map((u,i)=>{
+    const st=unitStatus(i);
+    let cls="unit-pill";
+    if(i===unitIdx)cls+=" active";
+    else if(st==="done")cls+=" done";
+    return`<button class="${cls}" onclick="goToUnit(${i})">Unit ${i+1}<br/><span style="font-weight:400;font-size:10px;opacity:.8">${u.subEn.split(" ")[0]}</span></button>`;
+  }).join("");
+
+  let answerHtml="";
+  if(q.type==="mc"){
+    answerHtml=q.opts.map((opt,i)=>{
+      let cls="mc-btn";
+      if(feedback){
+        if(i===q.correct)cls+=" ok";
+        else if(i===Number(answers[q.id]?.userAns)&&!feedback.correct)cls+=" err";
+        else cls+=" dim";
+      }
+      return`<button class="${cls}" onclick="if(!state.feedback)submit(${i})">${opt}</button>`;
+    }).join("");
+    answerHtml+=!feedback?`<div class="skip-row"><button class="btn-skip" onclick="skipQ()">Не знаю →</button></div>`:"";
+  } else if(q.type==="wo"){
+    answerHtml=`
+      ${renderWoSlot(wordSel,feedback,q)}
+      ${!feedback?`<div class="wo-pool">${wordPool.map((w,i)=>`<button class="chip-pool" onclick="tapPool(${i})">${w}</button>`).join("")}</div>`:""}
+      ${!feedback&&wordSel.length===q.words.length?`<button class="btn-primary" style="width:auto;padding:11px 28px" onclick="submit(state.wordSel.join(' '))">Проверить</button>`:""}
+      ${!feedback?`<div class="skip-row"><button class="btn-skip" onclick="skipQ()">Не знаю →</button></div>`:""}`;
+  }
+
+  const fbHtml=feedback?`
+    <div class="fb ${feedback.correct?"ok":"err"}">
+      <div class="fb-title ${feedback.correct?"ok":"err"}">${feedback.correct?"Правильно!":q.type==="wo"?"Посмотри на правильный порядок выше":"Правильный ответ: "+feedback.correctAns}</div>
+      <div class="fb-exp">${feedback.expRu}</div>
+    </div>`:"";
+
+  const refContent=showRef?`
+    <div class="card" style="padding:14px 16px;margin-bottom:14px">
+      ${unit.refLines.map(([en,ru])=>`<div style="margin-bottom:7px"><div class="ref-en">${en}</div>${en!==ru?`<div class="ref-ru">${ru}</div>`:""}</div>`).join("")}
+    </div>`:"";
+
+  root.innerHTML=`
+    <div class="prog-wrap"><div class="prog-bar" style="width:${progPct}%"></div></div>
+    <div style="padding-top:16px">
+      ${jumpPills?`<div class="unit-jump">${jumpPills}</div>`:""}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div class="unit-title">${unit.en}</div>
+          <div class="unit-sub">${unit.subRu}</div>
+        </div>
+        <span class="counter">${counterLabel}</span>
+      </div>
+      ${navBar}
+      <button class="ref-toggle" onclick="setState({showRef:!state.showRef})">
+        <span style="display:inline-block;transition:transform .2s;transform:${showRef?"rotate(90deg)":"none"};font-size:9px">▶</span>
+        &nbsp;Правило / Rule
+      </button>
+      ${refContent}
+      <div class="card" style="margin-bottom:12px">
+        ${q.en?`<div class="q-en">${q.en}</div>`:""}
+        ${q.ru?`<div class="q-ru">${q.ru}</div>`:""}
+      </div>
+      ${answerHtml}
+      ${fbHtml}
+      ${feedback&&!tg?.MainButton?.isVisible?`<button class="btn-primary" onclick="goNext()">${getNextLabel()}</button>`:""}
+      ${(!retryMode||feedback)?`<div style="display:flex;justify-content:space-between;margin-top:${feedback?"4":"14"}px">
+        <button class="btn-ghost" onclick="handleBack()">← Содержание</button>
+        ${Object.keys(state.answers).length>0?`<button class="btn-ghost" onclick="goToResults()">Результаты →</button>`:""}
+      </div>`:""}
+
+    </div>`;
+}
+
+render();
+</script>
+</body>
+</html>

@@ -4,12 +4,14 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = "https://livinlavlin-svg.github.io/EnglishGrammar/"
+MEMORY_WEBAPP_URL = "https://livinlavlin-svg.github.io/EnglishGrammar/speakenglish/tma/memory_trainer_v1.html"
 
 KEYBOARD = InlineKeyboardMarkup([
     [InlineKeyboardButton("📅 Записаться на пробный урок", url="https://calendly.com/livinlavlin/30min")],
     [InlineKeyboardButton("💬 Только спросить", url="https://t.me/ohlavlin")],
     [InlineKeyboardButton("📢 Канал english.everyday", url="https://t.me/lavlin_english")],
-    [InlineKeyboardButton("🎓 Открыть тренажёр", web_app=WebAppInfo(url=WEBAPP_URL))],
+    [InlineKeyboardButton("🎓 Тренажёр грамматики", web_app=WebAppInfo(url=WEBAPP_URL))],
+    [InlineKeyboardButton("🧠 Тренажёр фраз о памяти", web_app=WebAppInfo(url=MEMORY_WEBAPP_URL))],
 ])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
