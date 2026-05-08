@@ -149,6 +149,11 @@ function goToResults(){
   if(tg?.MainButton) tg.MainButton.hide();
   setState({screen:'results',retryMode:false,retryQueue:[],retryPos:0,feedback:null});
 }
+function restartTest(){
+  haptic('light');
+  if(tg?.MainButton) tg.MainButton.hide();
+  setState({answers:{},screen:'cover',retryMode:false,retryQueue:[],retryPos:0,feedback:null});
+}
 
 // ─── CONTENT ─────────────────────────────────────────────────
 const UNITS=[
@@ -273,7 +278,7 @@ function continueTest(){
 
 function startUnit(ui){
   haptic('light');
-  setState({screen:"quiz",unitIdx:ui,qIdx:0,showRef:true,retryMode:false,retryQueue:[],retryPos:0,...initQ(UNITS[ui],0)});
+  setState({screen:"quiz",unitIdx:ui,qIdx:0,showRef:false,retryMode:false,retryQueue:[],retryPos:0,...initQ(UNITS[ui],0)});
 }
 
 function startRetry(){
@@ -531,8 +536,10 @@ function render(){
         }).join("")}
 
         ${wrongCount>0?`<button class="btn-primary" style="margin-top:8px" onclick="startRetry()">Исправить ${pluralErrors(wrongCount)} →</button>`:""}
+        ${Object.keys(answers).length<TOTAL_Q?`<button class="btn-secondary" onclick="continueTest()">Продолжить тест →</button>`:""}
+        <button class="btn-secondary" onclick="restartTest()">Пройти тест заново</button>
 
-        <button class="btn-tg" style="margin-top:${wrongCount>0?"10":"8"}px" onclick="openTg('${LESSON_LINK}')">
+        <button class="btn-tg" style="margin-top:10px" onclick="openTg('${LESSON_LINK}')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.71l-1.686 7.94c-.127.563-.46.7-.933.435l-2.573-1.895-1.241 1.194c-.138.138-.253.253-.518.253l.185-2.624 4.775-4.314c.208-.184-.045-.287-.321-.103L7.67 14.555l-2.528-.79c-.549-.171-.56-.549.114-.814l9.877-3.806c.459-.168.86.103.797.565z" fill="currentColor"/></svg>
           Записаться на пробный урок
         </button>
@@ -689,7 +696,7 @@ function render(){
       </div>
       ${answerHtml}
       ${fbHtml}
-      ${feedback&&!tg?.MainButton?.isVisible?`<button class="btn-primary" onclick="goNext()">${getNextLabel()}</button>`:""}
+      ${feedback&&!tg?.MainButton?`<button class="btn-primary" onclick="goNext()">${getNextLabel()}</button>`:""}
       ${(!retryMode||feedback)?`<div style="display:flex;justify-content:space-between;margin-top:${feedback?"4":"14"}px">
         <button class="btn-ghost" onclick="handleBack()">← Содержание</button>
         ${Object.keys(state.answers).length>0?`<button class="btn-ghost" onclick="goToResults()">Результаты →</button>`:""}
